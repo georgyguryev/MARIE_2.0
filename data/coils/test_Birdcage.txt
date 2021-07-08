@@ -1,0 +1,76 @@
+$Ports: 32
+$PortSection: 
+[port# | port_type | load_type | reference_impedance]
+1 feed shunt 50
+2 load shunt 50    
+3 load shunt 50
+4 load shunt 50
+5 load shunt 50
+6 load shunt 50
+7 load shunt 50 
+8 load shunt 50
+9 feed shunt 50
+10 load shunt 50
+11 load shunt 50
+12 load shunt 50
+13 load shunt 50
+14 load shunt 50 
+15 load shunt 50 
+16 load shunt 50
+17 load shunt 50
+18 load shunt 50 
+19 load shunt 50 
+20 load shunt 50
+21 load shunt 50 
+22 load shunt 50
+23 load shunt 50
+24 load shunt 50
+25 load shunt 50
+26 load shunt 50 
+27 load shunt 50 
+28 load shunt 50
+29 load shunt 50
+30 load shunt 50 
+31 load shunt 50 
+32 load shunt 50
+$End_PortSection
+
+$Start_TuningSection:
+[port# | lumped_element | nominal_value_1 | nominal_value_2 | mutual_port# | tuning_flag | ini_val | min_val | max_val]
+2 capacitor 8.1296e-11 [] [] 0 [] [] []
+3 capacitor 8.1296e-11 [] [] 0 [] [] []
+4 capacitor 8.1296e-11 [] [] 0 [] [] []
+5 capacitor 8.1296e-11 [] [] 0 [] [] []
+6 capacitor 8.1296e-11 [] [] 0 [] [] []
+7 capacitor 8.1296e-11 [] [] 0 [] [] []
+8 capacitor 8.1296e-11 [] [] 0 [] [] []
+10 capacitor 8.1296e-11 [] [] 0 [] [] []
+11 capacitor 8.1296e-11 [] [] 0 [] [] []
+12 capacitor 8.1296e-11 [] [] 0 [] [] []
+13 capacitor 8.1296e-11 [] [] 0 [] [] []
+14 capacitor 8.1296e-11 [] [] 0 [] [] []
+15 capacitor 8.1296e-11 [] [] 0 [] [] []
+16 capacitor 8.1296e-11 [] [] 0 [] [] []
+17 capacitor 8.1296e-11 [] [] 0 [] [] []
+18 capacitor 8.1296e-11 [] [] 0 [] [] []
+19 capacitor 8.1296e-11 [] [] 0 [] [] []
+20 capacitor 8.1296e-11 [] [] 0 [] [] []
+21 capacitor 8.1296e-11 [] [] 0 [] [] []
+22 capacitor 8.1296e-11 [] [] 0 [] [] []
+23 capacitor 8.1296e-11 [] [] 0 [] [] []
+24 capacitor 8.1296e-11 [] [] 0 [] [] []
+25 capacitor 8.1296e-11 [] [] 0 [] [] []
+26 capacitor 8.1296e-11 [] [] 0 [] [] []
+27 capacitor 8.1296e-11 [] [] 0 [] [] []
+28 capacitor 8.1296e-11 [] [] 0 [] [] []
+29 capacitor 8.1296e-11 [] [] 0 [] [] []
+30 capacitor 8.1296e-11 [] [] 0 [] [] []
+31 capacitor 8.1296e-11 [] [] 0 [] [] []
+32 capacitor 8.1296e-11 [] [] 0 [] [] []
+$End_TuningSection
+
+$Start_MatchingSection:
+[port# | lumped_element_1 | lumped_element_2 | nominal_value_1 | nominal_value_2]
+1 capacitor [] 10e-12 []
+9 capacitor [] 10e-12 []
+$End_MatchingSection

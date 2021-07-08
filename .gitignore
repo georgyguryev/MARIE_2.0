@@ -1,0 +1,5 @@
+# ignore binary files
+src_assembly/+src_coupling/mex_Assembly/bin/*.mexa64
+src_assembly/src_sie/src_assembly/src_mexdirect_ws_rwg/*.mexa64
+src_assembly/+src_operator/src_PWX/mexAssembly/bin/*.mexa64
+src_assembly/+src_operator/src_PWX/singular/*.mexa64

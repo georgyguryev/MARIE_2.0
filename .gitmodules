@@ -1,0 +1,3 @@
+[submodule "src_assembly/+src_operator/src_PWX/mexAssembly/include/external/Vc"]
+	path = src_assembly/+src_operator/src_PWX/mexAssembly/include/external/Vc
+	url = https://github.com/VcDevel/Vc.git

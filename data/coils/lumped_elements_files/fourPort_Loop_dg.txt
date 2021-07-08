@@ -1,0 +1,5 @@
+4
+1 feed capacitor 10e-12 [] [] 1 0 [] [] []
+2 feed capacitor 10e-12 [] [] 1 0 [] [] []
+3 feed capacitor 10e-12 [] [] 1 0 [] [] []
+4 load capacitor 10e-12 [] [] 0 0 [] [] []

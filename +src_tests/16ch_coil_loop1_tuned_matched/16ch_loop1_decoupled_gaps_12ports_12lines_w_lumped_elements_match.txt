@@ -1,0 +1,36 @@
+$Ports: 12 
+$PortSection: 
+[port# | port_type | feed_type | reference_impedance]
+1 feed shunt-series 50
+2 load shunt 50 
+3 load shunt 50
+4 load shunt 50
+5 load shunt 50
+6 load shunt 50
+7 load shunt 50
+8 load shunt 50 
+9 load shunt 50
+10 load shunt 50
+11 load shunt 50
+12 load shunt 50
+$End_PortSection
+
+$Start_TuningSection:
+[port# | lumped_element | nominal_value_1 | nominal_value_2 | mutual_port# | tuning_flag | ini_val | min_val | max_val]
+2 capacitor 8.8E-12 [] [] 0 [] [] []
+3 capacitor 8.8E-12 [] [] 0 [] [] []
+4 capacitor 8.8E-12 [] [] 0 [] [] []
+5 capacitor 8.8E-12 [] [] 0 [] [] []
+6 capacitor 8.8E-12 [] [] 0 [] [] []
+7 capacitor 8.8E-12 [] [] 0 [] [] []
+8 capacitor 8.8E-12 [] [] 0 [] [] []
+9 capacitor 8.8E-12 [] [] 0 [] [] []
+10 capacitor 8.8E-12 [] [] 0 [] [] []
+11 capacitor 8.8E-12 [] [] 0 [] [] []
+12 capacitor 8.8E-12 [] [] 0 [] [] []
+$End_TuningSection
+
+$Start_MatchingSection:
+[port# | lumped_element_1 | lumped_element_2 | lumped_element_3 | nominal_value_1 | nominal_value_2 | nominal_value_3]
+1 inductor capacitor []  8.6E-9 22.4E-12 []
+$End_MatchingSection

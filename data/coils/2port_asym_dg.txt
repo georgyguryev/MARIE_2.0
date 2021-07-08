@@ -1,0 +1,16 @@
+$Ports: 2 
+$PortSection: 
+[port# | port_type | load_type | reference_impedance]
+1 feed shunt-series 50
+2 feed series-shunt 50    
+$End_PortSection
+
+$Start_TuningSection:
+[port# | lumped_element | nominal_value_1 | nominal_value_2 | mutual_port# | tuning_flag | ini_val | min_val | max_val]
+$End_TuningSection
+
+$Start_MatchingSection:
+[port# | lumped_element_1 | lumped_element_2 | nominal_value_1 | nominal_value_2]
+1 resistor  capacitor 10000  3.95e-10 
+2 capacitor inductor 3.95e-10 73e-9
+$End_MatchingSection

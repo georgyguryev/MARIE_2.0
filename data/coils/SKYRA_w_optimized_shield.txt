@@ -1,0 +1,141 @@
+$Ports: 64 
+$PortSection: 
+[port# | port_type | load_type | reference_impedance]
+1 feed shun-series-shunt 50
+2 load shunt 50    
+3 load shunt 50
+4 load shunt 50
+5 load shunt 50
+6 load shunt 50
+7 load shunt 50 
+8 load shunt 50
+9 feed shunt-series-shunt 50
+10 load shunt 50
+11 load shunt 50
+12 load shunt 50
+13 load shunt 50
+14 load shunt 50 
+15 load shunt 50 
+16 load shunt 50
+17 load shunt 50
+18 load shunt 50 
+19 load shunt 50 
+20 load shunt 50
+21 load shunt 50 
+22 load shunt 50
+23 load shunt 50
+24 load shunt 50
+25 load shunt 50
+26 load shunt 50 
+27 load shunt 50 
+28 load shunt 50
+29 load shunt 50
+30 load shunt 50 
+31 load shunt 50 
+32 load shunt 50
+33 load shunt 50
+34 load shunt 50
+35 load shunt 50
+36 load shunt 50
+37 load shunt 50
+38 load shunt 50 
+39 load shunt 50 
+40 load shunt 50
+41 load shunt 50
+42 load shunt 50 
+43 load shunt 50 
+44 load shunt 50
+45 load shunt 50 
+46 load shunt 50
+47 load shunt 50
+48 load shunt 50
+49 load shunt 50
+50 load shunt 50 
+51 load shunt 50 
+52 load shunt 50
+53 load shunt 50
+54 load shunt 50 
+55 load shunt 50 
+56 load shunt 50
+57 load shunt 50
+58 load shunt 50 
+59 load shunt 50
+60 load shunt 50
+61 load shunt 50 
+62 load shunt 50 
+63 load shunt 50
+64 load shunt 50
+$End_PortSection
+
+$Start_TuningSection:
+[port# | lumped_element | nominal_value_1 | nominal_value_2 | mutual_port# | tuning_flag | ini_val | min_val | max_val]
+2 capacitor 93.739e-12 [] [] 0 [] [] []
+3 capacitor 93.739e-12 [] [] 0 [] [] []
+4 capacitor 93.739e-12 [] [] 0 [] [] []
+5 capacitor 93.739e-12 [] [] 0 [] [] []
+6 capacitor 93.739e-12 [] [] 0 [] [] []
+7 capacitor 93.739e-12 [] [] 0 [] [] []
+8 capacitor 93.739e-12 [] [] 0 [] [] []
+10 capacitor 93.739e-12 [] [] 0 [] [] []
+11 capacitor 93.739e-12 [] [] 0 [] [] []
+12 capacitor 93.739e-12 [] [] 0 [] [] []
+13 capacitor 93.739e-12 [] [] 0 [] [] []
+14 capacitor 93.739e-12 [] [] 0 [] [] []
+15 capacitor 93.739e-12 [] [] 0 [] [] []
+16 capacitor 93.739e-12 [] [] 0 [] [] []
+17 capacitor 93.739e-12 [] [] 0 [] [] []
+18 capacitor 93.739e-12 [] [] 0 [] [] []
+19 capacitor 93.739e-12 [] [] 0 [] [] []
+20 capacitor 93.739e-12 [] [] 0 [] [] []
+21 capacitor 93.739e-12 [] [] 0 [] [] []
+22 capacitor 93.739e-12 [] [] 0 [] [] []
+23 capacitor 93.739e-12 [] [] 0 [] [] []
+24 capacitor 93.739e-12 [] [] 0 [] [] []
+25 capacitor 93.739e-12 [] [] 0 [] [] []
+26 capacitor 93.739e-12 [] [] 0 [] [] []
+27 capacitor 93.739e-12 [] [] 0 [] [] []
+28 capacitor 93.739e-12 [] [] 0 [] [] []
+29 capacitor 93.739e-12 [] [] 0 [] [] []
+30 capacitor 93.739e-12 [] [] 0 [] [] []
+31 capacitor 93.739e-12 [] [] 0 [] [] []
+32 capacitor 93.739e-12 [] [] 0 [] [] []
+33 capacitor 93.739e-12 [] [] 0 [] [] []
+34 capacitor 93.739e-12 [] [] 0 [] [] []
+35 capacitor 93.739e-12 [] [] 0 [] [] []
+36 capacitor 93.739e-12 [] [] 0 [] [] []
+37 capacitor 93.739e-12 [] [] 0 [] [] []
+38 capacitor 93.739e-12 [] [] 0 [] [] []
+39 capacitor 93.739e-12 [] [] 0 [] [] []
+40 capacitor 93.739e-12 [] [] 0 [] [] []
+41 capacitor 93.739e-12 [] [] 0 [] [] []
+42 capacitor 93.739e-12 [] [] 0 [] [] []
+43 capacitor 93.739e-12 [] [] 0 [] [] []
+44 capacitor 93.739e-12 [] [] 0 [] [] []
+45 capacitor 93.739e-12 [] [] 0 [] [] []
+46 capacitor 93.739e-12 [] [] 0 [] [] []
+47 capacitor 93.739e-12 [] [] 0 [] [] []
+48 capacitor 93.739e-12 [] [] 0 [] [] []
+49 capacitor 93.739e-12 [] [] 0 [] [] []
+50 capacitor 93.739e-12 [] [] 0 [] [] []
+51 capacitor 93.739e-12 [] [] 0 [] [] []
+52 capacitor 93.739e-12 [] [] 0 [] [] []
+53 capacitor 93.739e-12 [] [] 0 [] [] []
+54 capacitor 93.739e-12 [] [] 0 [] [] []
+55 capacitor 93.739e-12 [] [] 0 [] [] []
+56 capacitor 93.739e-12 [] [] 0 [] [] []
+57 capacitor 93.739e-12 [] [] 0 [] [] []
+58 capacitor 93.739e-12 [] [] 0 [] [] []
+59 capacitor 93.739e-12 [] [] 0 [] [] []
+60 capacitor 93.739e-12 [] [] 0 [] [] []
+61 capacitor 93.739e-12 [] [] 0 [] [] []
+62 capacitor 93.739e-12 [] [] 0 [] [] []
+63 capacitor 93.739e-12 [] [] 0 [] [] []
+64 capacitor 93.739e-12 [] [] 0 [] [] []
+$End_TuningSection
+
+$Start_MatchingSection:
+[port# | lumped_element_1 | lumped_element_2 | lumped_element_3| nominal_value_1 | nominal_value_2 | nominal_value_3 ]
+1 inductor inductor capacitor 175.9e-9 134.4e-9 93.739e-12
+9 inductor inductor capacitor 175.9e-9 134.4e-9 93.739e-12
+$End_MatchingSection
+

@@ -1,0 +1,20 @@
+$Ports: 4 
+$PortSection: 
+[port# | port_type | load_type | reference_impedance]
+1 feed shunt 50
+2 load shunt 50
+3 load shunt 50
+4 load shunt 50 
+$End_PortSection
+
+$Start_TuningSection:
+[port# | lumped_element | nominal_value_1 | nominal_value_2 | mutual_port# | tuning_flag | ini_val | min_val | max_val]
+2 resistor 0 [] [] 0 0 0 0 
+3 resistor 0 [] [] 0 0 0 0
+4 resistor 0 [] [] 0 0 0 0
+$End_TuningSection
+
+$Start_MatchingSection:
+[port# | lumped_element_1 | lumped_element_2 | nominal_value_1 | nominal_value_2]
+1 resistor  [] 10000  0
+$End_MatchingSection
