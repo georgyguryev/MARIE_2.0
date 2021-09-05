@@ -135,6 +135,12 @@ classdef TaskRunner_SIE < TaskRunner_Base
             Zw_src   = obj.assembly_sie_.Zw_src;
             Yw_coil  = obj.assembly_sie_.Yw_coil;
             
+            Jct = obj.assembly_sie_.Zcoil_ \ obj.Fcoil; 
+            
+            obj.Jcoil = (Jct + Jct / ( inv(obj.Z_L_hat) - obj.Fcoil.' * Jct) * ...
+                           obj.Fcoil.' * Jct) * obj.assembly_sie_.rhs_cp;
+            
+            
             obj.Jcoil = obj.Zcoil_ \ obj.assembly_sie_.rhs_c;          
                                  
             % Compute coil currents and voltages 
@@ -151,7 +157,8 @@ classdef TaskRunner_SIE < TaskRunner_Base
             obj.NP.src.S(:,:,freq_num) = y2s(obj.NP.src.Y(:,:,freq_num));
             
             % find NP seeing from the coil ports
-            obj.NP.coil.Y(:,:,freq_num) = Icoil / Vcoil;
+%             obj.NP.coil.Y(:,:,freq_num) = Icoil / Vcoil;
+            obj.NP.coil.Y(:,:,freq_num) = - obj.Fcoil.' * Jct;
             obj.NP.coil.Z(:,:,freq_num) = y2z(obj.NP.coil.Y(:,:,freq_num));
             obj.NP.coil.S(:,:,freq_num) = y2s(obj.NP.coil.Y(:,:,freq_num));
             

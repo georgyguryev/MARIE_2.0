@@ -52,7 +52,7 @@ classdef Assembly_SIE < src_assembly.Assembly_Base
             obj.form_rhs_sie_();
             
             % update impedance matrix and inverse impedance matrix;
-            obj.Zcoil_     = obj.Zcoil_ + obj.Z_mt;
+%             obj.Zcoil_     = obj.Zcoil_ + obj.Z_mt;
             obj.Zcoil_inv_ = eye(size(obj.Zcoil_)) / obj.Zcoil_;
             
         end

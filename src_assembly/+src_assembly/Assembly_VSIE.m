@@ -114,7 +114,7 @@ classdef Assembly_VSIE < src_assembly.Assembly_VIE & src_assembly.Assembly_SIE
             % form rhs taking into account ext. circuitry
             obj.form_rhs_sie_();
             
-            obj.Zcoil_ = obj.Zcoil_ + obj.Z_mt;
+%             obj.Zcoil_ = obj.Zcoil_ + obj.Z_mt;
             
             obj.Zcoil_inv_ = eye(size(obj.Zcoil_)) / obj.Zcoil_; 
             
