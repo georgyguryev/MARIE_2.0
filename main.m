@@ -20,13 +20,13 @@ simulator.load_task(task_specs);
 %% visualize setup
 
 % visualize both coil and body
-simulator.show_coil_and_body();
+% simulator.show_coil_and_body();
 
 % show coil with corresponding ports
 simulator.show_coil();
 
 % show body model
-simulator.show_body();
+% simulator.show_body();
 
 %% Run task
 

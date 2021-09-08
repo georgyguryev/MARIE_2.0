@@ -113,12 +113,10 @@ classdef Assembly_VSIE < src_assembly.Assembly_VIE & src_assembly.Assembly_SIE
             
             % form rhs taking into account ext. circuitry
             obj.form_rhs_sie_();
-            
-%             obj.Zcoil_ = obj.Zcoil_ + obj.Z_mt;
-            
+                        
             obj.Zcoil_inv_ = eye(size(obj.Zcoil_)) / obj.Zcoil_; 
             
-            obj.operators.Jc_ini =   obj.Zcoil_inv_ * obj.rhs_c;
+            obj.operators.Jc_ini =   obj.Zcoil_inv_ * obj.Fcoil_;
 
             if strcmp(coupling_type ,'Dense')
                 
@@ -429,6 +427,7 @@ classdef Assembly_VSIE < src_assembly.Assembly_VIE & src_assembly.Assembly_SIE
                 
                 rhs_SIE = obj.rhs_c;
                 
+                %% ????
                 obj.rhs_c = obj.Zcoil_inv_ * rhs_SIE;
                 
                 Jc_ini = obj.operators.Jc_ini;

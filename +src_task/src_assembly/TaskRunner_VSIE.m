@@ -16,6 +16,7 @@ classdef TaskRunner_VSIE < TaskRunner_Base
         solver
         
         % temporary var. for final currents
+        Jcb_coil
         Jcb_sol
         
         sol_time 
@@ -163,10 +164,18 @@ classdef TaskRunner_VSIE < TaskRunner_Base
             Zw_coil = obj.assembly_vsie.Zw_coil;
             Zw_src  = obj.assembly_vsie.Zw_src;
             Yw_coil = obj.assembly_vsie.Yw_coil;
-            Fcoil = obj.assembly_vsie.Fcoil_;
+            Z_L_hat = obj.assembly_vsie.Z_L_hat;
+            F       = obj.assembly_vsie.Fcoil_;
+            Jco     = obj.assembly_vsie.operators.Jc_ini / obj.assembly_vsie.rhs_cp;
+            Y_clf   = inv(Z_L_hat)  - F.' * Jco;
+            U       = obj.assembly_vsie.rhs_b / obj.assembly_vsie.rhs_cp;
+            N_feeds = obj.dims.N_feeds;
+            I_fds   = eye(N_feeds);
+            rhs_cp  = obj.assembly_vsie.rhs_cp; 
+
                         
             % loop over rhs vectors
-                for feed_port = 1:obj.dims.N_feeds
+                for feed_port = 1:N_feeds
                     
                     fprintf('Solving VSIE problem for Port %d \n', feed_port);
 
@@ -187,13 +196,18 @@ classdef TaskRunner_VSIE < TaskRunner_Base
  
                     end
                     
-                    % run solver 
+                    
+%                     rhs = rhs / obj.assembly_vsie.rhs_cp;
+                    
+                    
+                    
+                    % run solver for 
                     [Jcb, relative_res, res_vector] = obj.solver.run(rhs, ini_guess, feed_port);
 
                     solve_toc = toc;
 
                     % store results in temp tensors
-                    obj.Jcb_sol(:,feed_port, freq_num) = Jcb;
+                    obj.Jcb_coil(:,feed_port, freq_num) = Jcb;
                     obj.sol_time(feed_port,freq_num)   = solve_toc;
                     obj.rel_res(:,feed_port, freq_num) = relative_res;
                     obj.res_vec(feed_port, freq_num)   = {res_vector};                   
@@ -204,11 +218,25 @@ classdef TaskRunner_VSIE < TaskRunner_Base
 
                 end
                 
-                Jcoil = squeeze(obj.Jcb_sol(1:obj.dims.N_sie,:,freq_num));
                 
+                % sol. currents if 1V is applied to each coil port
+                % directly (does not take into account scaling due to
+                % the external circuit)
+                Jc_coil = obj.Jcb_coil(1:obj.dims.N_sie,:,freq_num);
+                Jb_coil = obj.Jcb_coil(obj.dims.N_sie+1:end,:, freq_num);
+                    
+                % rescale currents to take into account matching circuit 
+                Jb = Jb_coil *(I_fds  - inv(I_fds + (U.' * Jb_coil) \ Y_clf)) *...
+                        (I_fds + inv(Y_clf) * F.' * Jco) * rhs_cp;
+                    
+                Jcoil = (Jc_coil + Jc_coil / (inv(Z_L_hat) - F.' * Jc_coil) * Jc_coil.' * F) * rhs_cp;
+                
+                % save scaled currents to the solution
+                obj.Jcb_sol = [Jcoil; Jb];
+                                
                 % the actual voltage applied to excitation ports (Coil) 
-                Icoil = - Fcoil.' * Jcoil;
-                Vcoil = obj.assembly_vsie.rhs_cp + obj.assembly_vsie.Z_L_hat * Fcoil.' * Jcoil;
+                Icoil = - F.' * Jcoil;
+                Vcoil = obj.assembly_vsie.rhs_cp + obj.assembly_vsie.Z_L_hat * F.' * Jcoil;
                 
                 Isrc  = w_src_I * Icoil + Yw_coil * Vcoil;
                 Vsrc  = w_coil_V * Vcoil + Zw_coil * Icoil + Zw_src * Isrc;
@@ -219,7 +247,7 @@ classdef TaskRunner_VSIE < TaskRunner_Base
                 obj.NP.src.S(:,:,freq_num) = y2s(obj.NP.src.Y(:,:,freq_num));
                 
                 % find NP seeing from the coil ports
-                obj.NP.coil.Y(:,:,freq_num) = Icoil / Vcoil;
+                obj.NP.coil.Y(:,:,freq_num) = - F.' * Jc_coil;
                 obj.NP.coil.Z(:,:,freq_num) = y2z(obj.NP.coil.Y(:,:,freq_num));
                 obj.NP.coil.S(:,:,freq_num) = y2s(obj.NP.coil.Y(:,:,freq_num));
            

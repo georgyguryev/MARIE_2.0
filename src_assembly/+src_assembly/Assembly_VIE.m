@@ -440,7 +440,7 @@ methods (Access = protected)
         obj.dims.N_exp_3D  = N_exp.^3;
         obj.dims.N_near_3D = N_near.^3; 
         
-        obj.projector.near_boundary_width = obj.task_settings_.vsie.Near_boundary_width;
+%         obj.projector.near_boundary_width = obj.task_settings_.vsie.Near_boundary_width;
         
         %
         obj.dims.near = [obj.dims.N_near_1D, obj.dims.N_near_1D, obj.dims.N_near_1D, obj.dims.ql];
