@@ -135,7 +135,7 @@ if ((nargin >= 5) && ~isempty(M1))
     existM1 = 1;
     [m1type,m1fun,m1fcnstr] =src_numeric.iterchk(M1);
     if strcmp(m1type,'matrix')
-        if ~isequal(size(M1),[m,m]) && ~isequal(size(M1),[1,1])
+        if ~isequal(size(M1),[m,m]) && ~isequal(size(M1),[1,1]) && ~isequal(size(M1),[m,1])
             error(message('MATLAB:tfqmr:WrongPrecondSize', m));
         end
     end
@@ -148,7 +148,7 @@ if ((nargin >= 6) && ~isempty(M2))
     existM2 = 1;
     [m2type,m2fun,m2fcnstr] = src_numeric.iterchk(M2);
     if strcmp(m2type,'matrix')
-        if ~isequal(size(M2),[m,m]) && ~isequal(size(M2), [1, 1])
+        if ~isequal(size(M2),[m,m]) && ~isequal(size(M2), [1, 1]) && ~isequal(size(M2),[m,1])
             error(message('MATLAB:tfqmr:WrongPrecondSize', m));
         end
     end
@@ -199,11 +199,13 @@ w = r;
 if existM1
     
     if strcmp(m1type,'matrix')
-        pu_m  = M1 \ u_m;
+        
+        pu_m = src_numeric.apply_preconditioner(M1, u_m, pL);
+%         pu_m  = M1 .* u_m;
 %         pu_m  = M1 \ u_m(pL);
 
     else
-        pu_m = src_numeric.iterapp('mldivide',m1fun,m1type,m1fcnstr,u_m,varargin{:});
+        pu_m = src_numeric.iterapp('mtimes',m1fun,m1type,m1fcnstr,u_m,varargin{:});
     end
      
     if ~all(isfinite(pu_m))
@@ -221,7 +223,12 @@ else
 end
 if existM2
     
-    pu_m = src_numeric.iterapp('mldivide',m2fun,m2type,m2fcnstr,pu_m,varargin{:});
+    if strcmp(m2type,'matrix')
+        pu_m = src_numeric.apply_preconditioner(M2, pu_m, pL);
+    else
+        pu_m = src_numeric.iterapp('mtimes',m2fun,m2type,m2fcnstr,pu_m,varargin{:});
+    end
+    
     if ~all(isfinite(pu_m))
         flag = 2;
         relres = normr/n2b;
@@ -255,6 +262,10 @@ normrmin = resvec(1);
 
 even = true;
 
+
+% x_true = zeros(n,maxit);
+% x_true(:,1) = x;
+
 for mm = 1 : maxit*2
     if even
         alpha = rho/(r0'*v);
@@ -279,6 +290,7 @@ for mm = 1 : maxit*2
     normr = norm(r);
     normr_act = normr;
     resvec(mm+1) = normr;
+%     x_true(:,mm+1) = x;
     
     % check for convergence
     if (normr <= tolb || stag >= maxstagsteps || moresteps)
@@ -328,12 +340,18 @@ for mm = 1 : maxit*2
     if existM1
         
         if strcmp(m1type,'matrix')
-%             pu_m  = M1 \ u_mp1(pL);
-            pu_m  = M1 \ u_mp1;
-
+            pu_m = src_numeric.apply_preconditioner(M1, u_mp1, pL);
         else
-            pu_m = src_numeric.iterapp('mldivide',m1fun,m1type,m1fcnstr,u_mp1,varargin{:});
+            pu_m = src_numeric.iterapp('mtimes',m1fun,m1type,m1fcnstr,u_mp1,varargin{:});
         end
+        
+%         if strcmp(m1type,'matrix')
+% %             pu_m  = M1 \ u_mp1(pL);
+%             pu_m  = M1 .* u_mp1;
+% 
+%         else
+%             pu_m = src_numeric.iterapp('mtimes',m1fun,m1type,m1fcnstr,u_mp1,varargin{:});
+%         end
      
         if ~all(isfinite(pu_m))
             flag = 2;
@@ -344,7 +362,14 @@ for mm = 1 : maxit*2
         pu_m = u_mp1;
     end
     if existM2
-        pu_m = src_numeric.iterapp('mldivide',m2fun,m2type,m2fcnstr,pu_m,varargin{:});
+        
+        if strcmp(m2type,'matrix')
+            pu_m = src_numeric.apply_preconditioner(M2, pu_m, pL);
+        else
+            pu_m = src_numeric.iterapp('mtimes',m2fun,m2type,m2fcnstr,pu_m,varargin{:});
+        end
+    
+%         pu_m = src_numeric.iterapp('mtimes',m2fun,m2type,m2fcnstr,pu_m,varargin{:});
         if ~all(isfinite(pu_m))
             flag = 2;
             resvec = resvec(1:mm+1);

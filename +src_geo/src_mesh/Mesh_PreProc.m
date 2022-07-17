@@ -52,6 +52,9 @@ NS = zeros(floor(Ne*Ne/2),2); nscount = 0;
 VA = zeros(100*Ne,2); vacount = 0;
 EA = zeros(3*Ne,2); eacount = 0;
 
+% counter of terminal edges
+term_count = 0;
+
 % loop on elements
 Nd = 0;
 for ii=1:Ne
@@ -197,49 +200,41 @@ tL_list = etype(tL_list_mask);
 
 %% loop over excitation ports first
 
-term_count = 0;
-
 for i = 1:length(tE_list)
-
+    
     % find positions of corresponding terminals
     idx = find(kn == tE_list(i));
-
+    
     p_num = find(etype == tE_list(i));
-
+    
     dofnum = term_count+1:term_count+length(idx); % create the dof number for each element
-
+    
     index(idx) = dofnum; % assign the dof number to the index position
-
+    
     port(p_num).t = dofnum; % store the dof number for the positive edge of port
-
+    
     term_count = term_count+length(idx); % increase counter
-
+    
 end
 
 %% loop over load ports
 
 for i = 1:length(tL_list)
-
+    
     % find positions of corresponding terminals
     idx = find(kn == tL_list(i));
-
+    
     p_num = find(etype == tL_list(i));
-
+    
     dofnum = term_count+1:term_count+length(idx); % create the dof number for each element
-
+    
     index(idx) = dofnum; % assign the dof number to the index position
-
+    
     port(p_num).t = dofnum; % store the dof number for the positive edge of port
-
+    
     term_count = term_count+length(idx); % increase counter
-
+    
 end
-
-
-% now for the internal edges!
-idx = find(kn == -1);
-dofnum = term_count+1:term_count+length(idx); % create the dof number for each element
-index(idx) = dofnum;
 
 
 %% Post-Process for mutual inductance
@@ -247,11 +242,16 @@ index(idx) = dofnum;
 for port_num = 1:Nports
     if strcmp(port(port_num).tuning_param.LE,'mutual_inductor')
         
-        % assign mutual terminals 
+        % assign mutual terminals
         port(port_num).t_mutual = port(port(port_num).tuning_param.mutual_port).t;
     end
 end
 
+
+% now for the internal edges!
+idx = find(kn == -1);
+dofnum = term_count+1:term_count+length(idx); % create the dof number for each element
+index(idx) = dofnum;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %               Find adjacency                                            %

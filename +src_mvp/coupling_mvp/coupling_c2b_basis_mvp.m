@@ -18,8 +18,8 @@ function Vout = coupling_c2b_basis_mvp(Jin, U, alpha, Gram, S_q2ql)
 %     Vout = Gram * (U * (alpha * Jin));
 % end
 
-if nargin == 5  && size(U,1) ~= size(S_q2ql,1)
-    Vout = Gram * S_q2ql * (U * (alpha * Jin));
+if nargin == 5  && size(U,1) ~= size(S_q2ql,1) && ~isempty(S_q2ql)
+    Vout = S_q2ql * (U * (alpha * Jin));
 else 
-    Vout = Gram * (U * (alpha * Jin));
+    Vout = (U * (alpha * Jin));
 end

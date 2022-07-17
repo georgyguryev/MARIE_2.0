@@ -20,7 +20,7 @@
 %
 %
 
-function [V,H,B,k,resvec] = my_pgmresDR_iter(A,r,m,L1,pL_L,L2,R1,R2,C,tol)
+function [V,H,B,k,resvec, x] = my_pgmresDR_iter(A,r,m,L1,pL_L,L2,R1,R2,C,tol)
 
 if(isempty(L1))
    existL1 = 0;
@@ -59,6 +59,8 @@ B = zeros(size(C,2),m);
 H = zeros(m+1,m);
 resvec = zeros(m,1);
 
+x = zeros(size(r,1),m+1);
+
 
 for k = 1:m
     
@@ -75,7 +77,9 @@ for k = 1:m
    end
    if(existR1) % first right preconditioning
        if strcmp(R1type,'matrix')
-           w = R1 \ w;
+           
+%            w = R1 \ w;
+           w = src_numeric.apply_preconditioner(R1, w, []);
        else
            w = src_numeric.iterapp('mtimes',R1fun,R1type,R1fcnstr,w);
        end
@@ -90,14 +94,19 @@ for k = 1:m
    if(existL1) % first left preconditioning
        if strcmp(L1type,'matrix')
 %            w = L1 \ w(pL_L);
-           w = L1 \ w;           
+%            w = L1 \ w;
+%            w = L1 .* w;
+           
+           w = src_numeric.apply_preconditioner(L1, w, pL_L);
        else
            w = src_numeric.iterapp('mtimes',L1fun,L1type,L1fcnstr,w);
        end
    end
    if(existL2) % second left preconditioning
        if strcmp(L2type,'matrix')
-           w = L2 \ w;
+%            w = L2 \ w;
+%            w = L2 .* w;
+           w = src_numeric.apply_preconditioner(L2, w, pL_L);
        else
            w = src_numeric.iterapp('mtimes',L2fun,L2type,L2fcnstr,w);
        end
@@ -126,6 +135,8 @@ for k = 1:m
    y = H(1:k+1,1:k) \ rhs;
    res = rhs - H(1:k+1,1:k) * y;
    resvec(k) = norm(res);
+   
+   x(:,k) = V(:,1:k) * y;
    
 %    if isstruct(tol)
 %        

@@ -104,7 +104,7 @@ classdef (Abstract) TaskRunner_Base < handle
             for feed_port = 1:obj.dims.N_feeds
                 
                 % get polarisation currents
-                Jb = Jb_sol(1:end,feed_port, i_freq);
+                Jb = Jb_sol(:,feed_port, i_freq);
                 
                 t_Etotal_spec = mvp.Jb2Eb(Jb);
                 t_Etotal = zeros(size(t_Etotal_spec));
@@ -130,16 +130,18 @@ classdef (Abstract) TaskRunner_Base < handle
             
         end
         %------------------------------------------------------------------------
-        function [] = compute_Htot_pfft_(obj, Jc, Jb, mvp,i_freq)
+        function [] = compute_Htot_pfft_(obj, Jb, mvp,i_freq)
             
             res = obj.scatterer.dom_vie.res;
+            
+            H_tot_vec = mvp.Jb2Htot(Jb);
 
             % iterate over ports
             for feed_port = 1:obj.dims.N_feeds
                    
                 idxS    = obj.assembly_vsie.scatterer.index_vie.index_ql(obj.dims.ql, obj.dims.Nvox_vie);
                 H_tot   = zeros(obj.dims.vie);
-                H_tot(idxS) = mvp.Jcb2Htot(Jc(:,feed_port), Jb(:,feed_port));
+                H_tot(idxS) = H_tot_vec(:, feed_port);
                 
                 % store only the total electric field
                 obj.Htot(:,:,:,:,feed_port,i_freq) = H_tot / res^3;
@@ -148,40 +150,50 @@ classdef (Abstract) TaskRunner_Base < handle
             
         end
        %------------------------------------------------------------------------
-       function [] = compute_Htot_basis_(obj, Jc, Jb, mvp, i_freq)
+       function [] = compute_Htot_basis_(obj, Jb, mvp, i_freq)
             
              % get dimensions of the problem
             dims = obj.dims;
             n1 = dims.L_vie;
             n2 = dims.M_vie;
             n3 = dims.N_vie;
-            n_feeds = dims.N_feeds;
+            N_feeds = dims.N_feeds;
             
             res = obj.scatterer.dom_vie.res;
             
             % compute tested total electric field
             t_Htotal = zeros(n1,n2,n3,dims.ql);
             
+            Z_L_hat = obj.assembly_vsie.Z_L_hat;
+            F       = obj.assembly_vsie.Fcoil_;
+            Jco     = obj.assembly_vsie.operators.Jc_ini;
+            rhs_cp  = obj.assembly_vsie.rhs_cp;
+            Ic0     = -F.' * Jco;
+            Y_LC    = inv(Z_L_hat) + Ic0;
+            
+            
             idxS = obj.assembly_vsie.scatterer.index_vie.index_ql(dims.ql, dims.Nvox_vie);
             gpu_flag = obj.task_settings_.general.GPU_flag;
                         
-            Jsol = zeros(n1 * n2 * n3 * dims.ql, n_feeds);
+            Jsol = zeros(n1 * n2 * n3 * dims.ql, N_feeds);
             Jsol(idxS,:) = Jb;
-            Jsol = reshape(Jsol,[n1, n2, n3, dims.ql, n_feeds]);
+            Jsol = reshape(Jsol,[n1, n2, n3, dims.ql, N_feeds]);
                         
-            for feed_port = 1:dims.N_feeds
-                
-                % compute tested incident magnetic field
-                t_Hinc = mvp.get_Hinc_coupling(Jc(:,feed_port));
+            
+            % compute tested incident magnetic field
+            %                 t_Hinc = mvp.get_Hinc_coupling(Jc(:,feed_port));
+            t_Hinc = mvp.get_Hinc_coupling(Jb, Ic0, Y_LC, rhs_cp, 'body');
+            
+            for feed_port = 1:N_feeds
                 
                 % compute tested scattered magnetic field
                 t_Hsca = mvp.K_vie(Jsol(:,:,:,:,feed_port));
                 
                 % compute total tested magnetic field
                 if gpu_flag
-                    t_Htotal(idxS) = gather(t_Hsca(idxS) + t_Hinc);
+                    t_Htotal(idxS) = gather(t_Hsca(idxS) + t_Hinc(:,feed_port));
                 else
-                    t_Htotal(idxS) = t_Hsca(idxS) + t_Hinc;
+                    t_Htotal(idxS) = t_Hsca(idxS) + t_Hinc(:,feed_port);
                 end
                 
                 % PWL scaling

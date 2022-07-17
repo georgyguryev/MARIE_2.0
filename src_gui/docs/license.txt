@@ -1,7 +1,7 @@
 MARIEv2.0 - Magnetic Resonance Integral Equation Suite
 Copyright (C) 2019 
-Ioannis P. Georgakis, Ilias I. Giannakopoulos, Georgy D. Guryev, Jose E.C. Seralles, Luca Daniel, Jacob. K. White.
-Center for Computational and Data-Intensive Science and Engineering, Skoltech / Research Laboratory of Electronics, Computational Prototyping Group, MIT.
+Georgy Guryev, Jose E.C. Seralles, Ilias I. Giannakopoulos, Ioannis P. Georgakis,  Luca Daniel, Jacob. K. White.
+Research Laboratory of Electronics, Computational Prototyping Group, MIT / Center for Computational and Data-Intensive Science and Engineering, Skoltech. 
 
 This program is a free software: you can redistricute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
@@ -11,10 +11,13 @@ You should have received a copy of the GNU General Public License along with thi
 
 Any scientific result based on this open source tool should cite the next publications: 
 
-[1] pwl
+[1] peice-wise linear basis for VIE
 
-[2] tucker
+[2] pfft-based coupling
 
-[3] pfft coupling
+[3] basis-based coupling
+
+[4] tucker compression of VIE 
+
 
 MARIE v1.0 was created by Jorge F. Villena and Athanasios G. Polimeridis 

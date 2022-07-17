@@ -24,9 +24,9 @@ if strcmp(atype,'matrix')
     switch lower(op)
         case 'mtimes'
             if (nargin >= 6) && isequal(varargin{end},'transp')
-                y = afun' * x;
+                y = afun' .* x;
             else
-                y = afun * x;
+                y = afun .* x;
             end
         case 'mldivide'
             if (nargin >= 6) && isequal(varargin{end},'transp')

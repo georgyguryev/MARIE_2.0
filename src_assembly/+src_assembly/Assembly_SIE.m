@@ -92,6 +92,35 @@ classdef Assembly_SIE < src_assembly.Assembly_Base
 
         end
         
+        % function assembles Z_coil_ and F_coil_
+        function  assemble_SIE_excitation_(obj, freq)
+            
+            % if SIE runs at single frequency
+            if nargin < 2
+                freq = 3e8;
+            end
+            
+            % get previous settings
+            prevFreq  = obj.setgetPrevFreq_SIE();
+            prevCoil  = obj.setgetPrevCoil();
+            [prevZcoil,~,~] = obj.setgetPrevZcoil();
+            
+            % if the coil and frequency are the same skip assembly
+            if ~isequal(prevCoil.elem, obj.coil.elem) || any(prevFreq ~= freq) || isempty(prevZcoil)
+                
+ 
+                % call some assebly method
+                [obj.Fcoil_, obj.feed_tune_ports_] = Assembly_SIE_excitation(obj.coil);
+                
+                % update persistent variables
+                obj.setgetPrevFreq_SIE(freq);
+                obj.setgetPrevCoil(obj.coil);
+                obj.setgetPrevZcoil([], obj.Fcoil_, obj.feed_tune_ports_);
+            else
+                [~, obj.Fcoil_, obj.feed_tune_ports_] = obj.setgetPrevZcoil();
+            end
+
+        end
         % ------------------------------------------------------------- %
         
         function [] = add_matching_impedance_(obj, freq)
@@ -126,7 +155,7 @@ classdef Assembly_SIE < src_assembly.Assembly_Base
                 obj.Yw_coil(pnum, pnum)  = Yw_coil_i;
             end
             
-            obj.Z_mt  = -obj.Fcoil_* obj.Z_L_hat * obj.Fcoil_.';
+%             obj.Z_mt  = -obj.Fcoil_* obj.Z_L_hat * obj.Fcoil_.';
             
         end
         
@@ -134,7 +163,8 @@ classdef Assembly_SIE < src_assembly.Assembly_Base
         function form_rhs_sie_(obj)
             
             % define rhs
-            obj.rhs_c = obj.Fcoil_ * obj.rhs_cp;
+%             obj.rhs_c = obj.Fcoil_ * obj.rhs_cp;
+            obj.rhs_c = obj.Fcoil_;
             
         end
         
@@ -245,6 +275,33 @@ classdef Assembly_SIE < src_assembly.Assembly_Base
                     w_src_I = (Z_sh + Z_ser) / Z_sh;
                     rhs_c = w;
                     
+                case 'series-shunt-shunt'
+                    
+                    Z_ref = port.ref_impedance;
+                    
+                    Z_ser = obj.LE_impedance_(port.matching_param.LE_1,...
+                            port.matching_param.val_1, freq);
+                    
+                    Z_sh = obj.LE_impedance_(port.matching_param.LE_2,...
+                        port.matching_param.val_2, freq);
+                    
+                    Z_par = obj.LE_impedance_(port.matching_param.LE_3,...
+                        port.matching_param.val_3, freq);
+                    
+                    Z_tilde = Z_ref + Z_ser;
+                    
+                    Z_sp = Z_sh * Z_par / (Z_sh + Z_par);
+                    
+                    w = 1 / (1 + Z_tilde / Z_sp);
+                    
+                    Z_L_hat = Z_tilde * w;
+                    Zw_coil = 0;
+                    Zw_src  = Z_ser;
+                    Yw_coil = (Z_sh + Z_par ) / (Z_par * Z_sh);
+                    
+                    w_coil_V = 1;
+                    w_src_I = 1;
+                    rhs_c = w;
                     
                 otherwise
                     error('Unknown load type!');

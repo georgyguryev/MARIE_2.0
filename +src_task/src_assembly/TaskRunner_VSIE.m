@@ -16,8 +16,10 @@ classdef TaskRunner_VSIE < TaskRunner_Base
         solver
         
         % temporary var. for final currents
-        Jcb_coil
-        Jcb_sol
+        Jb_sol
+        Jb_coil
+        Jc_coil
+        Jcb_coil 
         
         sol_time 
         rel_res
@@ -73,7 +75,7 @@ classdef TaskRunner_VSIE < TaskRunner_Base
                     obj.solver = obj.assembly_vsie.setup_solver();
                 end
                 
-                if isempty(obj.Jcb_sol)
+                if isempty(obj.Jb_sol)
                     % initialize solution
                     obj.init_solution_();
                 end
@@ -149,7 +151,7 @@ classdef TaskRunner_VSIE < TaskRunner_Base
             dims = obj.dims;
             
             % initialize buffer
-            obj.Jcb_sol = zeros(dims.N_sie+dims.N_scat*dims.ql, dims.N_feeds,dims.N_freqs);
+            obj.Jb_sol = zeros(dims.N_scat*dims.ql, dims.N_feeds,dims.N_freqs);
             
             % initialize solution object for VSIE problem
             obj.task_solution_.init_VSIE_solution(dims);
@@ -159,6 +161,8 @@ classdef TaskRunner_VSIE < TaskRunner_Base
         
         function [] = compute_currents_(obj, freq_num)
             
+            solver_mode = lower(obj.task_settings_.vsie.Solver_mode);
+            
             w_src_I  = obj.assembly_vsie.w_src_I;
             w_coil_V = obj.assembly_vsie.w_coil_V;
             Zw_coil = obj.assembly_vsie.Zw_coil;
@@ -166,13 +170,12 @@ classdef TaskRunner_VSIE < TaskRunner_Base
             Yw_coil = obj.assembly_vsie.Yw_coil;
             Z_L_hat = obj.assembly_vsie.Z_L_hat;
             F       = obj.assembly_vsie.Fcoil_;
-            Jco     = obj.assembly_vsie.operators.Jc_ini / obj.assembly_vsie.rhs_cp;
+            Jco     = obj.assembly_vsie.operators.Jc_ini;
             Y_clf   = inv(Z_L_hat)  - F.' * Jco;
-            U       = obj.assembly_vsie.rhs_b / obj.assembly_vsie.rhs_cp;
+            U       = obj.assembly_vsie.rhs_b;
             N_feeds = obj.dims.N_feeds;
             I_fds   = eye(N_feeds);
             rhs_cp  = obj.assembly_vsie.rhs_cp; 
-
                         
             % loop over rhs vectors
                 for feed_port = 1:N_feeds
@@ -181,31 +184,37 @@ classdef TaskRunner_VSIE < TaskRunner_Base
 
                     tic
                     
-                    switch obj.task_settings_.vsie.Solver_mode
+                    switch lower(obj.task_settings_.vsie.Solver_mode)
                         
-                        case 'Decoupled'
+                        case 'coil_implicit'
                             rhs       = obj.assembly_vsie.rhs_b;
                             ini_guess = zeros(obj.dims.N_scat * obj.dims.ql,1);
+                            
+                        case 'tissue_implicit'
+                            rhs       = obj.assembly_vsie.rhs;
+                            ini_guess = obj.assembly_vsie.Zcoil_inv_ * rhs(:,feed_port);
 
-                        case 'Coupled'
+                        case 'explicit'
                             
                             rhs = obj.assembly_vsie.rhs;
                             
                             ini_Jc = obj.assembly_vsie.Zcoil_inv_ * rhs(1:obj.dims.N_sie, feed_port);
+                            ini_Jc = 0 * ini_Jc;                             
                             ini_guess = [ini_Jc; zeros(obj.dims.N_scat * obj.dims.ql,1)];
  
-                    end
+                    end                    
                     
+%                     profile on;
                     
-%                     rhs = rhs / obj.assembly_vsie.rhs_cp;
-                    
-                    
-                    
-                    % run solver for 
+                    % run solver 
                     [Jcb, relative_res, res_vector] = obj.solver.run(rhs, ini_guess, feed_port);
-
+                    
+%                     profile off;
+%                     profile viewer;
+%                     keyboard;
+                   
                     solve_toc = toc;
-
+                    
                     % store results in temp tensors
                     obj.Jcb_coil(:,feed_port, freq_num) = Jcb;
                     obj.sol_time(feed_port,freq_num)   = solve_toc;
@@ -218,28 +227,37 @@ classdef TaskRunner_VSIE < TaskRunner_Base
 
                 end
                 
+                % split solution if Coupled mode was selected
+                switch solver_mode
+                    
+                    case 'explicit'
+                        obj.Jc_coil = obj.Jcb_coil(1:obj.dims.N_sie,:,:);
+                        obj.Jb_coil = obj.Jcb_coil(obj.dims.N_sie + 1:end,:,:);
+                    case 'coil_implicit'
+                        obj.Jb_coil = obj.Jcb_coil;
+                    case 'tissue_implicit'
+                        obj.Jb_coil = obj.Jcb_coil;
+                end
+                
+                % rescale currents to take into account matching circuit 
+                Jb = obj.Jb_coil * (I_fds  - inv(I_fds + (U.' * obj.Jb_coil) \ Y_clf)) *...
+                        (I_fds + inv(Y_clf) * F.' * Jco) * rhs_cp;
+                   
+                [Icu, Ics] = obj.solver.mvp.SIE(obj.Jb_coil, Jb, Z_L_hat, rhs_cp); 
                 
                 % sol. currents if 1V is applied to each coil port
                 % directly (does not take into account scaling due to
                 % the external circuit)
-                Jc_coil = obj.Jcb_coil(1:obj.dims.N_sie,:,freq_num);
-                Jb_coil = obj.Jcb_coil(obj.dims.N_sie+1:end,:, freq_num);
-                    
-                % rescale currents to take into account matching circuit 
-                Jb = Jb_coil *(I_fds  - inv(I_fds + (U.' * Jb_coil) \ Y_clf)) *...
-                        (I_fds + inv(Y_clf) * F.' * Jco) * rhs_cp;
-                    
-                Jcoil = (Jc_coil + Jc_coil / (inv(Z_L_hat) - F.' * Jc_coil) * Jc_coil.' * F) * rhs_cp;
+
                 
                 % save scaled currents to the solution
-                obj.Jcb_sol = [Jcoil; Jb];
-                                
-                % the actual voltage applied to excitation ports (Coil) 
-                Icoil = - F.' * Jcoil;
-                Vcoil = obj.assembly_vsie.rhs_cp + obj.assembly_vsie.Z_L_hat * F.' * Jcoil;
+                obj.Jb_sol = Jb;
                 
-                Isrc  = w_src_I * Icoil + Yw_coil * Vcoil;
-                Vsrc  = w_coil_V * Vcoil + Zw_coil * Icoil + Zw_src * Isrc;
+                % the actual voltage applied to excitation ports (Coil) 
+                Vcoil = obj.assembly_vsie.rhs_cp - obj.assembly_vsie.Z_L_hat * Ics;
+                
+                Isrc  = w_src_I * Ics + Yw_coil * Vcoil;
+                Vsrc  = w_coil_V * Vcoil + Zw_coil * Icu + Zw_src * Isrc;
                 
                 % find NP seeing from the voltage sourse (i.e. coil + external circuit + ref. impedance)
                 obj.NP.src.Y(:,:,freq_num) = Isrc / Vsrc;
@@ -247,7 +265,7 @@ classdef TaskRunner_VSIE < TaskRunner_Base
                 obj.NP.src.S(:,:,freq_num) = y2s(obj.NP.src.Y(:,:,freq_num));
                 
                 % find NP seeing from the coil ports
-                obj.NP.coil.Y(:,:,freq_num) = - F.' * Jc_coil;
+                obj.NP.coil.Y(:,:,freq_num) = Icu;
                 obj.NP.coil.Z(:,:,freq_num) = y2z(obj.NP.coil.Y(:,:,freq_num));
                 obj.NP.coil.S(:,:,freq_num) = y2s(obj.NP.coil.Y(:,:,freq_num));
            
@@ -263,8 +281,8 @@ classdef TaskRunner_VSIE < TaskRunner_Base
             [freqs, N_freq] = obj.get_working_frequencies_();
             idx_ql   = obj.scatterer.index_vie.index_ql(dims.ql, dims.Nvox_vie);
             
-            Jc        = obj.Jcb_sol(1:dims.N_sie,:,:);
-            Jb_vec    = obj.Jcb_sol(dims.N_sie+1:end,:,:);
+%             Jc        = obj.Jcb_sol(1:dims.N_sie,:,:);
+            Jb_vec    = obj.Jb_sol(:,:,:);
             Jb_tensor = zeros([dims.vie, dims.N_feeds, N_freq]);
 
             for i = 1:dims.N_feeds
@@ -278,7 +296,7 @@ classdef TaskRunner_VSIE < TaskRunner_Base
             end    
             
             % store solution of the VSIE problem in task_solution
-            obj.task_solution_.set_surface_currents(Jc);
+%             obj.task_solution_.set_surface_currents(Jc);
             obj.task_solution_.set_plrz_currents_vec(Jb_vec);
             obj.task_solution_.set_plrz_currents_tensor(Jb_tensor);
             
@@ -308,10 +326,10 @@ classdef TaskRunner_VSIE < TaskRunner_Base
         function [] = compute_E_total_(obj, i_freq)
         % compute total electric fields 
         
-            Jcb = obj.Jcb_sol(obj.dims.N_sie+1:end,:,:);
+            Jb = obj.Jb_sol(:,:,:);
             
             % get tissue currents 
-            obj.compute_E_total_base_(Jcb, obj.assembly_vsie.mvp,...
+            obj.compute_E_total_base_(Jb, obj.assembly_vsie.mvp,...
                                        i_freq)
         
         end
@@ -324,19 +342,20 @@ classdef TaskRunner_VSIE < TaskRunner_Base
             % computes the magnetic field
             coupling_mode = obj.task_settings_.vsie.Coupling_Mode;
             
-            Jc  = obj.Jcb_sol(1:obj.dims.N_sie,:, i_freq);
-            Jb  = obj.Jcb_sol(obj.dims.N_sie+1:end,:, i_freq);
+%             Jc  = obj.Jcb_sol(1:obj.dims.N_sie,:, i_freq);
+            Jb  = obj.Jb_sol(:,:, i_freq);  
+            
             mvp = obj.assembly_vsie.mvp;
             
             switch coupling_mode
                 case 'pFFT'
-                    obj.compute_Htot_pfft_(Jc, Jb, mvp, i_freq);
+                    obj.compute_Htot_pfft_(Jb, mvp, i_freq);
                     
                 case 'Basis'
-                    obj.compute_Htot_basis_(Jc, Jb, mvp, i_freq);
-                    
+                    obj.compute_Htot_basis_(Jb, mvp, i_freq);
                 case 'Dense'
-                    obj.compute_Htot_basis_(Jc, Jb, mvp, i_freq);
+                    obj.compute_Htot_basis_(Jb, mvp, i_freq);
+                    
                 otherwise
                     error('Unknown coupling type! \n');
             end
@@ -385,7 +404,7 @@ classdef TaskRunner_VSIE < TaskRunner_Base
             % scale linear components (Gramian)
             if obj.dims.ql == 12
                 G = repmat([1; 1/12; 1/12; 1/12;], obj.dims.q,1);
-                for i = dims.ql
+                for i = obj.dims.ql
                     SAR.loc(:,:,:,i) = G(i) .* SAR.loc(:,:,:,i);
                 end
             end

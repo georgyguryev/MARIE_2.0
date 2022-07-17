@@ -25,13 +25,13 @@ N_exp_half   = (N_exp_1D - 1) / 2;
 
 d_coil2bound = res * N_coil2bound;
 
-%% get body domain + 2 voxels
+%% get body domain
 
 Xb_bb = zeros(3,2);
 
-Xb_bb(1,1) = min(x(idxS))-res; Xb_bb(1,2) = max(x(idxS))+res;
-Xb_bb(2,1) = min(y(idxS))-res; Xb_bb(2,2) = max(y(idxS))+res;
-Xb_bb(3,1) = min(z(idxS))-res; Xb_bb(3,2) = max(z(idxS))+res;
+Xb_bb(1,1) = min(x(idxS)); Xb_bb(1,2) = max(x(idxS));
+Xb_bb(2,1) = min(y(idxS)); Xb_bb(2,2) = max(y(idxS));
+Xb_bb(3,1) = min(z(idxS)); Xb_bb(3,2) = max(z(idxS));
 
 
 %% get dimensions of the SCOIL
@@ -61,12 +61,12 @@ for i = 1:size(Xext_bb,1)
     end
     
     
-     if(Xb_bb(i,2) > Xc_bb(i,2) + d_coil2bound)
+    if(Xb_bb(i,2) > Xc_bb(i,2) + d_coil2bound)
         Xext_bb(i,2) = Xb_bb(i,2) + eps;
-     else
+    else
         n_shift = round(abs(Xb_bb(i,2) - Xc_bb(i,2)) / res);
         Xext_bb(i,2) = Xb_bb(i,2) + res * (n_shift + N_exp_half) + eps;
-     end
+    end
 
 
 end

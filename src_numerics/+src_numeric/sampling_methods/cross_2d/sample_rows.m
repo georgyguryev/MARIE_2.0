@@ -22,5 +22,6 @@ idx = find(ismember(idxS, idx));
 I_hat = repmat(idx, dims.ql,1) + kron(dom_dims * (0:dims.ql-1).', ones(size(idx)));
 I_hat = setdiff(I_hat, I);
 
-i_loc = sort(randsample(size(I_hat,1), rank));
+sz_I_hat = size(I_hat,1);
+i_loc = sort(randsample(sz_I_hat, min(rank, sz_I_hat)));
 I_hat = I_hat(i_loc);

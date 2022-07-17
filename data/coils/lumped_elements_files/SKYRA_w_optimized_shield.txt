@@ -1,65 +1,141 @@
-64 
-1 feed capacitor 10e-12 [] [] 1 0 [] [] []
-2 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-3 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-4 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-5 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-6 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-7 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-8 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-9 feed capacitor 10e-12 [] [] 1 0 [] [] []
-10 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-11 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-12 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-13 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-14 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-15 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-16 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-17 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-18 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-19 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-20 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-21 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-22 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-23 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-24 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-25 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-26 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-27 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-28 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-29 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-30 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-31 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-32 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-33 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-34 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-35 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-36 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-37 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-38 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-39 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-40 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-41 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-42 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-43 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-44 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-45 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-46 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-47 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-48 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-49 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-50 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-51 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-52 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-53 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-54 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-55 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-56 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-57 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-58 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-59 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-60 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-61 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-62 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-63 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
-64 load capacitor 8.1296E-11 [] [] 0 0 [] [] []
+$Ports: 64 
+$PortSection: 
+[port# | port_type | load_type | reference_impedance]
+1 feed shunt-series-shunt 50
+2 load shunt 50    
+3 load shunt 50
+4 load shunt 50
+5 load shunt 50
+6 load shunt 50
+7 load shunt 50 
+8 load shunt 50
+9 feed shunt-series-shunt 50
+10 load shunt 50
+11 load shunt 50
+12 load shunt 50
+13 load shunt 50
+14 load shunt 50 
+15 load shunt 50 
+16 load shunt 50
+17 load shunt 50
+18 load shunt 50 
+19 load shunt 50 
+20 load shunt 50
+21 load shunt 50 
+22 load shunt 50
+23 load shunt 50
+24 load shunt 50
+25 load shunt 50
+26 load shunt 50 
+27 load shunt 50 
+28 load shunt 50
+29 load shunt 50
+30 load shunt 50 
+31 load shunt 50 
+32 load shunt 50
+33 load shunt 50
+34 load shunt 50
+35 load shunt 50
+36 load shunt 50
+37 load shunt 50
+38 load shunt 50 
+39 load shunt 50 
+40 load shunt 50
+41 load shunt 50
+42 load shunt 50 
+43 load shunt 50 
+44 load shunt 50
+45 load shunt 50 
+46 load shunt 50
+47 load shunt 50
+48 load shunt 50
+49 load shunt 50
+50 load shunt 50 
+51 load shunt 50 
+52 load shunt 50
+53 load shunt 50
+54 load shunt 50 
+55 load shunt 50 
+56 load shunt 50
+57 load shunt 50
+58 load shunt 50 
+59 load shunt 50
+60 load shunt 50
+61 load shunt 50 
+62 load shunt 50 
+63 load shunt 50
+64 load shunt 50
+$End_PortSection
+
+$Start_TuningSection:
+[port# | lumped_element | nominal_value_1 | nominal_value_2 | mutual_port# | tuning_flag | ini_val | min_val | max_val]
+2 capacitor 81.296e-12 [] [] 0 [] [] []
+3 capacitor 81.296e-12 [] [] 0 [] [] []
+4 capacitor 81.296e-12 [] [] 0 [] [] []
+5 capacitor 81.296e-12 [] [] 0 [] [] []
+6 capacitor 81.296e-12 [] [] 0 [] [] []
+7 capacitor 81.296e-12 [] [] 0 [] [] []
+8 capacitor 81.296e-12 [] [] 0 [] [] []
+10 capacitor 81.296e-12 [] [] 0 [] [] []
+11 capacitor 81.296e-12 [] [] 0 [] [] []
+12 capacitor 81.296e-12 [] [] 0 [] [] []
+13 capacitor 81.296e-12 [] [] 0 [] [] []
+14 capacitor 81.296e-12 [] [] 0 [] [] []
+15 capacitor 81.296e-12 [] [] 0 [] [] []
+16 capacitor 81.296e-12 [] [] 0 [] [] []
+17 capacitor 81.296e-12 [] [] 0 [] [] []
+18 capacitor 81.296e-12 [] [] 0 [] [] []
+19 capacitor 81.296e-12 [] [] 0 [] [] []
+20 capacitor 81.296e-12 [] [] 0 [] [] []
+21 capacitor 81.296e-12 [] [] 0 [] [] []
+22 capacitor 81.296e-12 [] [] 0 [] [] []
+23 capacitor 81.296e-12 [] [] 0 [] [] []
+24 capacitor 81.296e-12 [] [] 0 [] [] []
+25 capacitor 81.296e-12 [] [] 0 [] [] []
+26 capacitor 81.296e-12 [] [] 0 [] [] []
+27 capacitor 81.296e-12 [] [] 0 [] [] []
+28 capacitor 81.296e-12 [] [] 0 [] [] []
+29 capacitor 81.296e-12 [] [] 0 [] [] []
+30 capacitor 81.296e-12 [] [] 0 [] [] []
+31 capacitor 81.296e-12 [] [] 0 [] [] []
+32 capacitor 81.296e-12 [] [] 0 [] [] []
+33 capacitor 81.296e-12 [] [] 0 [] [] []
+34 capacitor 81.296e-12 [] [] 0 [] [] []
+35 capacitor 81.296e-12 [] [] 0 [] [] []
+36 capacitor 81.296e-12 [] [] 0 [] [] []
+37 capacitor 81.296e-12 [] [] 0 [] [] []
+38 capacitor 81.296e-12 [] [] 0 [] [] []
+39 capacitor 81.296e-12 [] [] 0 [] [] []
+40 capacitor 81.296e-12 [] [] 0 [] [] []
+41 capacitor 81.296e-12 [] [] 0 [] [] []
+42 capacitor 81.296e-12 [] [] 0 [] [] []
+43 capacitor 81.296e-12 [] [] 0 [] [] []
+44 capacitor 81.296e-12 [] [] 0 [] [] []
+45 capacitor 81.296e-12 [] [] 0 [] [] []
+46 capacitor 81.296e-12 [] [] 0 [] [] []
+47 capacitor 81.296e-12 [] [] 0 [] [] []
+48 capacitor 81.296e-12 [] [] 0 [] [] []
+49 capacitor 81.296e-12 [] [] 0 [] [] []
+50 capacitor 81.296e-12 [] [] 0 [] [] []
+51 capacitor 81.296e-12 [] [] 0 [] [] []
+52 capacitor 81.296e-12 [] [] 0 [] [] []
+53 capacitor 81.296e-12 [] [] 0 [] [] []
+54 capacitor 81.296e-12 [] [] 0 [] [] []
+55 capacitor 81.296e-12 [] [] 0 [] [] []
+56 capacitor 81.296e-12 [] [] 0 [] [] []
+57 capacitor 81.296e-12 [] [] 0 [] [] []
+58 capacitor 81.296e-12 [] [] 0 [] [] []
+59 capacitor 81.296e-12 [] [] 0 [] [] []
+60 capacitor 81.296e-12 [] [] 0 [] [] []
+61 capacitor 81.296e-12 [] [] 0 [] [] []
+62 capacitor 81.296e-12 [] [] 0 [] [] []
+63 capacitor 81.296e-12 [] [] 0 [] [] []
+64 capacitor 81.296e-12 [] [] 0 [] [] []
+$End_TuningSection
+
+$Start_MatchingSection:
+[port# | lumped_element_1 | lumped_element_2 | nominal_value_1 | nominal_value_2]
+1 inductor inductor  capacitor 175.9e-9 134.4e-9 81.296e-12
+9 inductor inductor  capacitor 175.9e-9 134.4e-9 81.296e-12
+$End_MatchingSection
+

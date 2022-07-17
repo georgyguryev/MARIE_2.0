@@ -15,7 +15,6 @@ properties
     
     % edge2edge impedance matrix
     Zcoil_ 
-    Zcoil_true_
     
     Zcoil_inv_
     

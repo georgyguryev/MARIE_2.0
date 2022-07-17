@@ -1,20 +1,17 @@
-function visualize_ConvergenceRate_(Cr,port_cut,freq_cut)
-
+function visualize_convergence_rate_(Cr,port_cut,freq)
     % Visualizes the convergence rate of the iterative solver
     % Author: Ilias I. Giannakopoulos, Cambridge, MA, 2019
+    % Modified: Georgy Guryev, Cambridge, MA, 2019
     
     figure
     
-    if ndims(Cr) == 3
-        Cr =  squeeze(Cr(:,port_cut,:));
-        Cr =  squeeze(Cr(:,freq_cut));
-    elseif ismatrix(Cr)
-        Cr =  squeeze(Cr(:,port_cut));
-    end
+    % get vector of residuals from the cell array
+    res_vec = Cr{port_cut}; 
         
-    semilogy(Cr,'b');
+    semilogy(res_vec,'b');
     xlabel('Iteration Count');
-    ylabel('Relative Residue');
+    ylabel('Relative Residual');
+    xlim([1, size(res_vec,1)]);
     grid on;
     axis tight;
     

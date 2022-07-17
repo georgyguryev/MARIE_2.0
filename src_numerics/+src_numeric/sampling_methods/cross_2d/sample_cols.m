@@ -18,6 +18,15 @@ else
 %     theta = acos(leb_quad.z);
 %     phi   = acos(leb_quad.x ./ rxy);
 %     JJ_hat = 
+    if isempty(J_hat)
+        J_hat = 1:size(V,1);
+        J_hat = setdiff(J_hat,J);
+        
+        n_samples = min(size(J_hat(:),1), rank);
+        
+        j_loc = sort(randsample(size(J_hat(:),1), n_samples));
+        J_hat = J_hat(j_loc);
+    end
 end
 
 rank_hat = size(J_hat,1);

@@ -65,9 +65,9 @@ e_mie_ax  = figure(); imagesc(20 * log10(abs(axial(E_Mie, slice))));
 e_mie_cor = figure(); imagesc(20 * log10(abs(coronal(E_Mie, slice))));
 e_mie_sag = figure(); imagesc(20 * log10(abs(sagittal(E_Mie, slice))));
 
-% h_mie_ax  = figure();  imagesc(20 * log10(abs(axial(H_Mie, slice))));
-% h_mie_cor = figure(); imagesc(20 * log10(abs(coronal(H_Mie, slice))));
-% h_mie_sag = figure(); imagesc(20 * log10(abs(sagittal(H_Mie, slice))));
+h_mie_ax  = figure();  imagesc(20 * log10(abs(axial(H_Mie, slice))));
+h_mie_cor = figure(); imagesc(20 * log10(abs(coronal(H_Mie, slice))));
+h_mie_sag = figure(); imagesc(20 * log10(abs(sagittal(H_Mie, slice))));
 
 
 

@@ -82,12 +82,12 @@ classdef Visualizer < handle
             src_visualizer.visualize_frequency_sweep(E,port_1,port_2,freqs)
         end
         
-        function visualize_ConvergenceRate(~,E,port_cut,freq_cut)
+        function visualize_ConvergenceRate(~,E,port_cut, freq_cut)
             % Visualizes the convergence rate of the iterative solver
-            % INPUT: E: Tensor of convergence rates for all ports and frequencies
+            % INPUT: E: Cell array of convergence rates for all ports and frequencies
             % port_cut: Port to visualize for
             % freq_cut: Cropping frequency point
-            src_visualizer.visualize_ConvergenceRate_(E,port_cut,freq_cut)
+            src_visualizer.visualize_convergence_rate_(E, port_cut, freq_cut)
         end
         
         function visualize_InterpolatePlot(~,E,sac,cut,port_cut,freq_cut,stepi)

@@ -7,17 +7,10 @@ classdef Surface_Coil < handle
         % geometric parameters
         index = []
         etod  = []
-        node  = []                         
         edge  = []                         
         elem  = []
         index_elem = []
-        Ct = []
-        Ln = []
-        Pn = []
-        rp = []
-        rn = []
-        r2 = []
-        r3 = []
+
         
         % Number of unknowns/ports/feed elements
         Nc      = 0;
@@ -28,9 +21,18 @@ classdef Surface_Coil < handle
     
     properties 
         
-       % port structure might be updated by tuning methods in TaskRunner 
+       % port structure and nodes might be updated (change of
+       % loads/matching circuits for port; rotation or displacement for node)
         port  = [];
         name  = [];
+        node  = [];                         
+        Ct = []
+        Ln = []
+        Pn = []
+        rp = []
+        rn = []
+        r2 = []
+        r3 = []
     end
     
     methods

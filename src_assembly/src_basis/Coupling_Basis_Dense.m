@@ -10,7 +10,7 @@ classdef Coupling_Basis_Dense < Coupling_Basis_Base
     
     methods
         
-        function obj = Coupling_Basis_Dense(task_settings, scatterer, coil, operator, dims, Zc_inv, freq)
+        function obj = Coupling_Basis_Dense(task_settings, scatterer, coil, operator, dims, freq, Zc_inv)
             
             
             obj = obj@Coupling_Basis_Base(task_settings, scatterer, coil, operator, dims, freq);

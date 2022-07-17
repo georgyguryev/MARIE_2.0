@@ -4,6 +4,8 @@ classdef Assembly_VSIE < src_assembly.Assembly_VIE & src_assembly.Assembly_SIE
     properties
         
         coupling
+        
+        Zc_inv_hat
 
     end
     
@@ -26,8 +28,13 @@ classdef Assembly_VSIE < src_assembly.Assembly_VIE & src_assembly.Assembly_SIE
 
         function assemble_system(obj, freq)
 
-            % assemble edge2edge SIE matrix 
-            obj.assemble_SIE_system_(freq);
+            if obj.basis_exists_()
+                % assemble port-to-edge excitation/incidence matrix F
+                obj.assemble_SIE_excitation_();
+            else
+                % assemble edge2edge SIE matrix 
+                obj.assemble_SIE_system_(freq);
+            end
                         
             % assemble VIE and VSIE operators
             obj.assemble_operators_(freq);  
@@ -55,15 +62,17 @@ classdef Assembly_VSIE < src_assembly.Assembly_VIE & src_assembly.Assembly_SIE
         % public method setup_solver() 
                            
             % get formulation type
-            formulation_type = obj.task_settings_.vsie.Solver_mode;
+            formulation_type = lower(obj.task_settings_.vsie.Solver_mode);
             
             % construct appropriate solver type 
             switch formulation_type
                 
-                case 'Coupled'
-                    vsie_solver = src_solver.Solver_Coupled(obj.mvp, obj.precond, obj.task_settings_);
-                case 'Decoupled'
-                    vsie_solver = src_solver.Solver_Decoupled(obj.mvp, obj.precond, obj.task_settings_);
+                case 'explicit'
+                    vsie_solver = src_solver.Solver_Explicit(obj.mvp, obj.precond, obj.task_settings_);
+                case 'tissue_implicit'
+                    vsie_solver = src_solver.Solver_Tissue_Implicit(obj.mvp, obj.precond, obj.task_settings_);
+                case 'coil_implicit'
+                    vsie_solver = src_solver.Solver_Coil_Implicit(obj.mvp, obj.precond, obj.task_settings_);
             end
             
             % setup relevant solver parameters
@@ -111,13 +120,15 @@ classdef Assembly_VSIE < src_assembly.Assembly_VIE & src_assembly.Assembly_SIE
             % add contribution of external circuits to Zcc
             obj.add_matching_impedance_(freq);
             
-            % form rhs taking into account ext. circuitry
-            obj.form_rhs_sie_();
-                        
-            obj.Zcoil_inv_ = eye(size(obj.Zcoil_)) / obj.Zcoil_; 
+            if ~obj.basis_exists_()
+                % form rhs taking into account ext. circuitry
+                obj.form_rhs_sie_();
+                
+                obj.Zcoil_inv_ = eye(size(obj.Zcoil_)) / obj.Zcoil_;
+                
+                obj.operators.Jc_ini =   obj.Zcoil_inv_ * obj.Fcoil_;
+            end
             
-            obj.operators.Jc_ini =   obj.Zcoil_inv_ * obj.Fcoil_;
-
             if strcmp(coupling_type ,'Dense')
                 
                 % compute material properties for vie
@@ -175,19 +186,39 @@ classdef Assembly_VSIE < src_assembly.Assembly_VIE & src_assembly.Assembly_SIE
     methods (Access = private)
         
         
+        function basis_exists = basis_exists_(obj)
+            
+            path = obj.task_settings_.basis.Path;
+            file = obj.task_settings_.basis.Filename;
+            coupling_method = obj.task_settings_.vsie.Coupling_Mode;
+
+            basis_fname = fullfile(path, file);
+            
+            if (2 == exist(basis_fname, 'file')) && strcmp(coupling_method, 'Basis')
+                basis_exists = true;
+            else
+                basis_exists = false;
+            end 
+        end
+        
+   % --------------------------------------------------------------------%
+   
         function assemble_precond_(obj, freq)
             % mathod assemble_precond_() assembles preconditioner for
             % coupled or decoupled systems
+            
+            gpu_flag     = obj.task_settings_.general.GPU_flag;
 
             % get solver mode
             coupling_method = obj.task_settings_.vsie.Coupling_Mode;
             solver_mode = obj.task_settings_.vsie.Solver_mode;
             
-            if strcmp(solver_mode, 'Coupled')
+            if strcmpi(solver_mode, 'explicit')
                 
                 obj.precond.assemble_precond_sie(obj.Zcoil_);
                 
-                if strcmp(coupling_method, 'pFFT')
+                
+                if strcmpi(coupling_method, 'pfft')
                     
                     idx_1d    = obj.scatterer.index_ext.S_1d;
                     Mcr_inv = obj.scatterer.prop_ext.Mcr_inv;
@@ -197,6 +228,21 @@ classdef Assembly_VSIE < src_assembly.Assembly_VIE & src_assembly.Assembly_SIE
                 end
                 
                 obj.precond.assemble_precond_vsie_coupled(idx_1d, Mcr_inv, obj.mvp, freq);
+                
+            elseif strcmpi(solver_mode, 'tissue_implicit')
+                
+
+                if gpu_flag
+                    obj.Zcoil_     = src_utils.to_GPU(obj.Zcoil_, 0);
+                end
+                
+                obj.precond.assemble_precond_vsie_tissue_implicit(obj.Zcoil_inv_);
+                
+                idx_1d    = obj.scatterer.index_vie.S_1d;
+                Mcr_vie_inv = obj.scatterer.prop_vie.Mcr_inv;
+                
+                % preconditioner for vsie (vie domain)
+                obj.precond.assemble_precond_vie(idx_1d, Mcr_vie_inv, obj.mvp, freq);
                 
             else
                 
@@ -252,6 +298,11 @@ classdef Assembly_VSIE < src_assembly.Assembly_VIE & src_assembly.Assembly_SIE
             % get operator dimensions
             obj.get_operator_dimensions_vie_();
             
+            F    = obj.Fcoil_;
+            Jini = obj.operators.Jc_ini;
+
+            obj.operators.Zc_inv_hat = obj.Zcoil_inv_ + Jini / (inv(obj.Z_L_hat) - F.' * Jini) * Jini.';
+     
             % if gpu flag is nonzero allocate gpu device
             if gpu_flag
                 
@@ -269,6 +320,13 @@ classdef Assembly_VSIE < src_assembly.Assembly_VIE & src_assembly.Assembly_SIE
             
             % assemble coupling matrix (discritization of coupling operator)
             obj.assemble_coupling_matrix_(freq);
+            
+            obj.operators.b_K   = obj.operators.Zbc_Kop * (obj.Zcoil_inv_ * F);
+            obj.operators.b_N   = obj.operators.Zbc_Nop * (obj.Zcoil_inv_ * F);
+            obj.operators.b_Icu = - F.' * obj.Zcoil_inv_ * F;
+            obj.operators.V_K = obj.Zcoil_inv_ * obj.operators.Zbc_Nop.';
+            obj.operators.X_cu  = F.' * obj.operators.V_K;
+       
             
         end
         
@@ -330,7 +388,10 @@ classdef Assembly_VSIE < src_assembly.Assembly_VIE & src_assembly.Assembly_SIE
             % get gpu flag
             gpu_flag    = obj.task_settings_.general.GPU_flag;
             tucker_flag = obj.task_settings_.vie.Tucker;
-
+            
+            
+            emu = src_utils.EM_utils(freq);
+                     
             % get operator from the previous run (if exists)
             obj.operators.N_vie_  = obj.setget_Prev_N_vie();
             obj.operators.N_ext_  = obj.setget_Prev_N_ext();
@@ -377,6 +438,22 @@ classdef Assembly_VSIE < src_assembly.Assembly_VIE & src_assembly.Assembly_SIE
                         
             % assemble projection matrices  
             obj.assemble_projection_matrix_(freq);
+            
+            tic;
+            
+            F    = obj.Fcoil_;
+            Jini = obj.operators.Jc_ini;
+            
+            P = obj.projector.PS(:,1:obj.dims.N_sie);
+            obj.operators.Zc_inv_hat = obj.Zcoil_inv_ + Jini / (inv(obj.Z_L_hat) - F.' * Jini) * Jini.';
+            
+            obj.operators.b_K   = obj.operators.Zc_inv_hat * F * obj.rhs_cp;
+            obj.operators.b_Icu = - F.' * obj.Zcoil_inv_ * F;
+%             obj.operators.b_Ics = - F.' * obj.operators.Zc_inv_hat * F * obj.rhs_cp;
+            obj.operators.X_cu  = 1 / emu.ce * (F.' * obj.Zcoil_inv_) * P.';
+%             obj.operators.X_cs  = 1 / emu.ce * (F.' * obj.operators.Zc_inv_hat) * P.';
+            
+            toc;
 
             % if gpu flag is nonzero allocate gpu device
             if gpu_flag
@@ -413,7 +490,7 @@ classdef Assembly_VSIE < src_assembly.Assembly_VIE & src_assembly.Assembly_SIE
             coupling_mode = obj.task_settings_.vsie.Coupling_Mode;
             
             
-            if strcmp(solver_mode, 'Coupled')
+            if strcmpi(solver_mode, 'explicit')
                 
                 % allocate memory for rhs
                 obj.rhs = zeros(obj.dims.N_sie + obj.dims.N_scat * obj.dims.ql, obj.dims.N_feeds);
@@ -423,51 +500,49 @@ classdef Assembly_VSIE < src_assembly.Assembly_VIE & src_assembly.Assembly_SIE
                 % add excitation due to applied voltage
                 obj.rhs(1:obj.dims.N_sie,:) = rhs_SIE;
                 
-            else
-                
-                rhs_SIE = obj.rhs_c;
-                
-                %% ????
-                obj.rhs_c = obj.Zcoil_inv_ * rhs_SIE;
-                
-                Jc_ini = obj.operators.Jc_ini;
-                
-                switch coupling_mode
-                    
-                    case 'Basis'
-                        
-                        obj.rhs_b = gather(obj.operators.M_q2ql * (obj.operators.U_N * (obj.operators.X_N * rhs_SIE)));
-                        
-                    case 'Dense'
-                        
-                        obj.rhs_b = gather(obj.operators.Zbc_Nop * Jc_ini);
-                        
-                    case 'pFFT'
-                        
-                        gpu_flag = obj.task_settings_.general.GPU_flag;
-                        emu = src_utils.EM_utils(freq);
-                        
-                        U = obj.precorrection.Z_C2B.Nop  * Jc_ini;
-                        S = obj.projector.PS(:,obj.dims.N_sie+1:end);
-                        P = obj.projector.PS(:,1:obj.dims.N_sie);
-                        
-                        if gpu_flag
-                            Jin = gpuArray(P * Jc_ini);
-                            L_ext = @(Jin) obj.mvp.L_ext_gpu(Jin);
-                        else
-                            Jin = P * Jc_ini;
-                            L_ext = @(Jin) obj.mvp.L_ext(Jin);
-                        end
-                        
-                        for i =1:size(Jin,2)
-                            
-                            E = L_ext(Jin(:,i));
-                            Q(:,i) = 1 / emu.ce * S.' * E(:);
-                        end
-                        
-                        obj.rhs_b = gather(U + Q);
-                end
+            elseif strcmpi(solver_mode, 'tissue_implicit')
+                obj.rhs = zeros(obj.dims.N_sie, obj.dims.N_feeds);
+                obj.rhs = obj.rhs_c;
             end
+                
+            Jc_ini = obj.operators.Jc_ini;
+            
+            switch coupling_mode
+
+                case 'Basis'
+
+                    obj.rhs_b = gather(obj.operators.M_q2ql * obj.operators.b_N );
+
+                case 'Dense'
+
+                    obj.rhs_b = gather(obj.operators.Zbc_Nop * Jc_ini);
+
+                case 'pFFT'
+
+                    gpu_flag = obj.task_settings_.general.GPU_flag;
+                    emu = src_utils.EM_utils(freq);
+
+                    U = obj.precorrection.Z_C2B.Nop  * Jc_ini;
+                    S = obj.projector.PS(:,obj.dims.N_sie+1:end);
+                    P = obj.projector.PS(:,1:obj.dims.N_sie);
+
+                    if gpu_flag
+                        Jin = gpuArray(P * Jc_ini);
+                        L_ext = @(Jin) obj.mvp.L_ext_gpu(Jin);
+                    else
+                        Jin = P * Jc_ini;
+                        L_ext = @(Jin) obj.mvp.L_ext(Jin);
+                    end
+
+                    for i =1:size(Jin,2)
+
+                        E = L_ext(Jin(:,i));
+                        Q(:,i) = 1 / emu.ce * S.' * E(:);
+                    end
+
+                    obj.rhs_b = gather(U + Q);
+            end
+            
         end
         
         
@@ -507,18 +582,40 @@ classdef Assembly_VSIE < src_assembly.Assembly_VIE & src_assembly.Assembly_SIE
         % ---------------------------------------------------------------------- %
         function assemble_basis_coupling_(obj, freq)
             
+            % path and filename of the basis 
+            path = obj.task_settings_.basis.Path;
+            file = src_utils.prefix_basis_filename(obj.task_settings_);
+                        
             coup_type = obj.task_settings_.basis.Type;
+            
+            
+            basis_fname = fullfile(path,file);
+           
+            % check if basis exists Zcoil was not assembled 
+            if 2 == exist(basis_fname,'file')
+                 switch coup_type
+                    case 'Cross'
+                        obj.coupling = Coupling_Basis_Cross(obj.task_settings_, obj.scatterer, obj.coil, obj.operators,...
+                            obj.dims, freq);
+                    case 'Dense'
+                        obj.coupling = Coupling_Basis_Dense(obj.task_settings_, obj.scatterer, obj.coil, obj.operators,...
+                            obj.dims, freq);
+                    otherwise
+                        error ('Error! Unknown mode of basis coupling!');
+                end
+            else
 
-            switch coup_type
-                
-                case 'Cross'
-                    obj.coupling = Coupling_Basis_Cross(obj.task_settings_, obj.scatterer, obj.coil, obj.operators,...
-                                                        obj.dims, obj.Zcoil_inv_, freq);
-                case 'Dense'
-                    obj.coupling = Coupling_Basis_Dense(obj.task_settings_, obj.scatterer, obj.coil, obj.operators,...
-                                                        obj.dims, obj.Zcoil_inv_, freq);                             
-                otherwise
-                    error ('Error! Unknown mode of basis coupling!');
+                switch coup_type
+                    
+                    case 'Cross'
+                        obj.coupling = Coupling_Basis_Cross(obj.task_settings_, obj.scatterer, obj.coil, obj.operators,...
+                            obj.dims, freq, obj.Zcoil_inv_, obj.Z_L_hat, obj.Fcoil_, obj.rhs_cp);
+                    case 'Dense'
+                        obj.coupling = Coupling_Basis_Dense(obj.task_settings_, obj.scatterer, obj.coil, obj.operators,...
+                            obj.dims, freq, obj.Zcoil_inv_);
+                    otherwise
+                        error ('Error! Unknown mode of basis coupling!');
+                end
             end
             
             obj.coupling.assemble_basis_coupling();

@@ -31,14 +31,16 @@ c2c_near_list = projector.C2C_near_list;
 near_vox_list = projector.near_vox_list;
 
 % define 
-exp_center      = floor(N_near_1D / 2) + mod(N_exp_1D, 2);
-idx_exp_near_1D = src_projector.assign_expansion_cell(exp_center, exp_center, exp_center,...
-                                                      N_exp_1D, N_near_1D,...
-                                                      N_near_1D, N_near_1D); 
+exp_center     = floor(N_near_1D / 2) + mod(N_exp_1D, 2);
+idx_exp_center = [exp_center; exp_center; exp_center];
+
+idx_exp_near_1D = src_projector.assign_expansion_cell(idx_exp_center,...
+                                                      dims, 'near'); 
                                                   
 % index exp near
-idx_ql = src_scatterer.Scatterer_index(idx_exp_near_1D.', N_near_3D);
+idx_ql = src_scatterer.Scatterer_index(idx_exp_near_1D(:,1), N_near_3D);
 i_exp_near = repmat(idx_ql.index_ql(dims.ql, N_near_3D), 1, N_sie);
+% i_exp_near = idx_ql.index_ql(dims.ql, N_near_3D);
 % i_exp_near = repmat(src_scatterer.Scatterer_index(idx_exp_near_1D.', N_near_3D).S_3d, 1, N_sie);
 
 %% select appropriate L operator; allocate memory for buffer variable
@@ -64,8 +66,6 @@ idx_exp_ext = sub2ind([N_ext_dofs N_sie], i_exp_ext(:), j_exp_ext(:));
 % idx_near_1D = find(near_list);
 Jc_ext  = mvp.Jcb2Jtot(Jcb);
 Jc_near = sparse(i_exp_near, j_exp_ext, Jc_ext(idx_exp_ext), N_near_dofs, N_sie);
-
-
 
        
 for i_sie = 1:c2c_near_list.Count

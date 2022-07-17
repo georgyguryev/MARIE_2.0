@@ -16,9 +16,20 @@ classdef Coupling_Basis_Base < handle
         % store left singular vectors for N and K operators
         U_N
         U_K
+        X_cu
+        X_cs
+        
+        b_N
+        b_K
+        b_Ics
+        b_Icu
         
         Zc_inv
-                
+        Zc_inv_hat
+        Z_L  
+        
+        F
+        rhs_cp
     end
     
     
@@ -35,10 +46,20 @@ classdef Coupling_Basis_Base < handle
             obj.freq          = freq;
         end
         
+        % --------------------------------------------------------------- %
+
         function load_basis(obj)
             
             path = obj.task_settings.basis.Path;
-            file = obj.task_settings.basis.Filename;
+            file = src_utils.prefix_basis_filename(obj.task_settings);
+            
+%             % label basis type with prefix
+%             switch solver_mode
+%                 case 'Coupled'
+%                     file = strcat('Coupled_basis_', file);
+%                 case 'Decoupled'
+%                     file = strcat('Perturbation_basis_', file);
+%             end
             
             basis_fname = fullfile(path,file);
             
@@ -46,20 +67,30 @@ classdef Coupling_Basis_Base < handle
             
             obj.operator.U_N = basis.U_N;
             obj.operator.U_K = basis.U_K;
-            obj.operator.X_N = basis.X_N;
-            obj.operator.W_N = basis.W_N;
-            obj.operator.alpha_N = basis.alpha_N;
-            obj.operator.alpha_K = basis.alpha_K;
+            obj.operator.b_N = basis.b_N;
+            obj.operator.b_K = basis.b_K;
+            obj.operator.b_Ics = basis.b_Ics;
+            obj.operator.b_Icu = basis.b_Icu;           
+            
+            obj.operator.X_cs = basis.X_cs;
+            obj.operator.X_cu = basis.X_cu;
+
+            obj.operator.V_N = basis.V_N;
+            obj.operator.V_K = basis.V_K;
+            
+            obj.operator.Jc_ini = basis.Jc_ini; 
+            
             obj.domain = basis.domain;
             obj.index  = basis.index;
         end
         
+        % --------------------------------------------------------------- %
         
         
         function save_basis(obj)
             
             path = obj.task_settings.basis.Path;
-            file = obj.task_settings.basis.Filename;
+            file = src_utils.prefix_basis_filename(obj.task_settings);
             
             basis_fname = fullfile(path,file);
             
@@ -67,10 +98,12 @@ classdef Coupling_Basis_Base < handle
             obj.domain = obj.scatterer.dom_vie;
             obj.index  = index_vie;
             
-            basis = struct('X_N', obj.operator.X_N, 'W_N', obj.operator.W_N,...
-                'alpha_N', obj.operator.alpha_N, 'alpha_K', obj.operator.alpha_K,...
-                'U_N', obj.operator.U_N, 'U_K', obj.operator.U_K,...
-                'domain', obj.domain, 'index', obj.index);
+            basis = struct('X_cs', obj.operator.X_cs, 'X_cu', obj.operator.X_cu,...
+                'V_N', obj.operator.V_N, 'V_K', obj.operator.V_K,...
+                'U_N', obj.operator.U_N, 'U_K', obj.operator.U_K,...,
+                'b_N', obj.operator.b_N, 'b_K', obj.operator.b_K,...
+                'b_Ics', obj.operator.b_Ics, 'b_Icu', obj.operator.b_Icu,...
+                'domain', obj.domain, 'index', obj.index, 'Jc_ini', obj.operator.Jc_ini);
             
             save(basis_fname, 'basis', '-v7.3');
             
@@ -78,20 +111,35 @@ classdef Coupling_Basis_Base < handle
             
         end
         
+        % --------------------------------------------------------------- %
+        
+        
         
         function assemble_basis_coupling(obj)
-            
-            N_scat = obj.dims.N_scat;
-            
+
             path = obj.task_settings.basis.Path;
-            file = obj.task_settings.basis.Filename;
+            file = src_utils.prefix_basis_filename(obj.task_settings);
+            solver_mode = lower(obj.task_settings.vsie.Solver_mode);
             
             basis_fname = fullfile(path,file);
            
             tic;
             % check if basis exists 
             if 2 ~= exist(basis_fname,'file')
-                obj.construct_basis();
+                profile on;
+                
+                switch solver_mode
+                    case 'explicit'
+                        obj.construct_coupled_basis();
+                    case 'coil_implicit'
+                        obj.construct_perturbation_basis();
+                    case 'tissue_implicit'
+                        obj.construct_coupled_basis();
+                end
+                
+                profile off;
+                profile viewer;
+                keyboard;
             else
                 obj.load_basis();
             end
@@ -99,7 +147,7 @@ classdef Coupling_Basis_Base < handle
             [idx, ~] = src_scatterer.get_scat2basis_indices(obj.domain, obj.index,...
                                                             obj.scatterer, obj.freq);
             toc;
-            
+            N_scat = obj.dims.N_scat;
             Ndofs_pwx = obj.dims.ql * N_scat;
               
             if size(obj.operator.U_N,1) == Ndofs_pwx 
@@ -114,56 +162,26 @@ classdef Coupling_Basis_Base < handle
                 obj.operator.M_q2ql = kron(speye(obj.dims.q), idx_Sl);
             end
             
-            b = obj.operator.M_q2ql * (obj.operator.U_N * (obj.operator.alpha_N * obj.operator.Jc_ini)); 
-            
-            tic;
-            
-            
-            [Q, S_U, V_hat] = truncated_svd(obj.operator.U_N, 1e-6);
-            toc;
-            tic;
-            W = S_U * V_hat' * obj.operator.X_N * obj.operator.alpha_N.' * conj(V_hat) * S_U;
-
-            [Q_w,S_w, V_w] = truncated_svd(W, 1e-20);
-            
-            U = Q * Q_w;
-            alpha = U' * b;
-            c = sqrt(S_w * alpha);
-            [c_sort, J] = sort(c, 'descend');
-            
-            basis_rank = find_max_rank(c_sort, obj.task_settings.vsie.Tolerance);
-            
-            J_unique = unique(reshape(J(1:basis_rank,:), [],1));
-            
-            UU_N = Q * Q_w * S_w;
-            V_N  = V_w' * Q.';
-            
-            obj.operator.UU_N = UU_N(:,J_unique);
-            obj.operator.V_N = V_N(J_unique,:);
-            
-            toc;
-            
             %% check if operators shouls be moved to GPU
             if obj.task_settings.basis.GPU_flag
-                obj.operator.U_N     = src_utils.to_GPU(obj.operator.U_N, 0);
-                
-                obj.operator.UU_N    = src_utils.to_GPU(obj.operator.UU_N, 0);
-                obj.operator.V_N     = src_utils.to_GPU(obj.operator.V_N, 0);
-%                 obj.operator.U_K     = src_utils.to_GPU(obj.operator.U_K, 0);
-                obj.operator.alpha_N = src_utils.to_GPU(obj.operator.alpha_N, 0);
-%                 obj.operator.alpha_K = src_utils.to_GPU(obj.operator.aplha_K, 0);
-                obj.operator.X_N     = src_utils.to_GPU(obj.operator.X_N, 0);
-                obj.operator.W_N     = src_utils.to_GPU(obj.operator.W_N, 0);
-                obj.operator.M_q2ql  = src_utils.to_GPU(obj.operator.M_q2ql, 0);
+                obj.operator.U_N    = src_utils.to_GPU(obj.operator.U_N, 0);
+                obj.operator.V_N    = src_utils.to_GPU(obj.operator.V_N, 0);
             end
           
-        end        
+        end     
+        
+        % --------------------------------------------------------------- %
+        
+       
+        
     end
     
     methods (Abstract)
         
         % declare method for basis assembly
-        construct_basis(obj)
+        construct_perturbation_basis(obj)
+        
+        construct_coupled_basis(obj)
                             
     end
     

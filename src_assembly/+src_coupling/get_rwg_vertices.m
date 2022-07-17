@@ -26,8 +26,6 @@ edge_node = setdiff([1,2,3], idx_tr1);
 % get coordinates of vertices, that form common edge
 r23 = coil.node(:,coil.elem(edge_node,tr_1));
 
-% disp(i_sie);
-
 % stack coordinates in a single vector
 r_rwg = [rv_p; rv_n; r23(:)];
 

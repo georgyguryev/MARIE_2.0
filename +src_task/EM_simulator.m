@@ -479,6 +479,14 @@ classdef  (Sealed = true) EM_simulator < handle
 
 
         % -------------------------------------------------------------- %
+        function show_convergence(obj, port, freq_cut)
+            
+            res_vec = obj.task_solution_.res_vec_;
+            
+            obj.visualizer_.visualize_ConvergenceRate(res_vec, port, freq_cut);
+        end
+        
+        % -------------------------------------------------------------- %
 
         function [task_solution] = get_solution(obj)
             % function returns the task_solution_ object to a user

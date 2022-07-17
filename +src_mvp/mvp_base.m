@@ -64,7 +64,8 @@ classdef (Abstract) mvp_base < handle
         
         Jc2K_coupling_ 
         Jc2H_coupling_
-        Jcb2H_tot_
+        Jb2H_coupling_
+        Jb2H_tot_
         
         VSIE_mvp_ % handle to final matrix-vector product
         VSIE_mvp_temp_
@@ -194,8 +195,8 @@ classdef (Abstract) mvp_base < handle
         
         % ------------------------------------------------------------- %
         
-        function Jout = SIE(obj, Jin, port)
-            Jout = obj.SIE_mvp_(Jin, port);
+        function [Icu, Ics] = SIE(obj, Jbu, Jbs, Z_L, rhs_cp)
+            [Icu, Ics] = obj.SIE_mvp_(Jbu, Jbs, Z_L, rhs_cp);
         end
         % ------------------------------------------------------------- %
         
@@ -270,14 +271,21 @@ classdef (Abstract) mvp_base < handle
         
         % ------------------------------------------------------------- %
         
-        function Jout = get_Hinc_coupling(obj,Jin)
-            Jout = obj.Jc2H_coupling_(Jin);
+        function Jout = get_Hinc_coupling(obj, Jin, Ic0, Y_LC, rhs_cp, type)
+            
+            switch type
+                case 'body'
+                    Jout = obj.Jb2H_coupling_(Jin, Ic0, Y_LC, rhs_cp);
+
+                case 'coil'
+                    Jout = obj.Jc2H_coupling_(Jin);
+            end
         end 
         
         % ------------------------------------------------------------- %
         
-        function Htot = Jcb2Htot(obj, Jc, Jb)
-            Htot = obj.Jcb2H_tot_(Jc, Jb);
+        function Htot = Jb2Htot(obj, Jb)
+            Htot = obj.Jb2H_tot_(Jb);
         end
 
     end

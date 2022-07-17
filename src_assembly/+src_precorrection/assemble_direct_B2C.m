@@ -76,7 +76,7 @@ for key = C2B_near_list.keys
     
     % get fields produced by unitary excitation of current rwg triangle
     [Zbc_Nop_i, Zbc_Kop_i] = Assemble_rwg_coupling_matrix(Scoord.', rp_i, rn_i, r2_i, r3_i, SIE_quads, VIE_quads,...
-                         res, 1, emu.k0, 1);
+                         res, dims.l, emu.k0, 1);
     
     Zbc_Nop_val{i_sie} = Zbc_Nop_i;
     Zbc_Kop_val{i_sie} = Zbc_Kop_i;

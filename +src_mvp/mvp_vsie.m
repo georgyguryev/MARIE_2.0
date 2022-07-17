@@ -56,7 +56,7 @@ classdef mvp_vsie < src_mvp.mvp_base
                     
                 case 'Dense'
                     % assemble core mvps
-                    obj.set_final_mvp_explicit_(coil, freq);
+                    obj.set_final_mvp_dense_(coil, freq);
             end
             
         end
@@ -81,6 +81,10 @@ classdef mvp_vsie < src_mvp.mvp_base
             % get gpu flag
             gpu_flag    = obj.task_settings_.general.GPU_flag;
             Solver_mode = obj.task_settings_.vsie.Solver_mode;
+            
+            b_K   = obj.operators_.b_K;
+            b_Icu = obj.operators_.b_Icu;
+            X_cu  = obj.operators_.X_cu;
 
             % setup coupling mvps
             obj.implicit_c2b_coupling_ = @(Jin) coupling_c2b_mvp(Jin, obj, obj.precorrection, obj.dims, freq);
@@ -99,13 +103,26 @@ classdef mvp_vsie < src_mvp.mvp_base
             % get electro-magnetic parameters  
             emu = src_utils.EM_utils(freq);
             
+            P = obj.PS(:,1:obj.dims.N_sie);
+            S = obj.PS(:,obj.dims.N_sie+1:end);
+            Z_C2B     = obj.precorrection.Z_C2B.Nop;
+            Z_C2B_Kop = obj.precorrection.Z_C2B.Kop;
+            Z_C2B_T = Z_C2B.';
             
-            if strcmp(Solver_mode, 'Coupled')
+            if strcmpi(Solver_mode, 'explicit')
             
                 % define mixing matrices (for optimized of the final mvp)
                 P1 = 1 / emu.ce * blkdiag(speye(N_sie, N_sie), -speye(N_b, N_b));
                 P2 = 1 / emu.ce * blkdiag(sparse(N_sie, N_sie), speye(N_b, N_b));
                 P3 = speye(N_sie + N_b);
+                
+                L_ext = @(Jin) obj.L_ext(Jin);
+                K_ext = @(Jin) obj.K_ext(Jin);
+                
+%                 obj.SIE_mvp_ = @(Jb_cu, Jb_cs, Z_L, rhs_cp) SIE_decoupled_pFFT(Jb_cu, Jb_cs, X_cu, b_Icu, L_ext, S, Z_L, rhs_cp);
+                
+                obj.Jb2H_tot_ = @(Jb) Jb2Htot_pFFT(Jb, K_ext, L_ext, Z_C2B_Kop, Z_C2B_T, obj.operators_.Zc_inv_hat,...
+                    P,S, b_K, freq);
 
                 % resulting mixing matrix
                 P_tot = [P1, P2, P3];
@@ -116,7 +133,7 @@ classdef mvp_vsie < src_mvp.mvp_base
                     obj.PS = gpuArray(obj.PS);
                     obj.precorrection.Z_tot = gpuArray(obj.precorrection.Z_tot);
 
-                    obj.VSIE_mvp_ = @(Jcb) VSIE_coupled_pFFT_gpu(Jcb, obj,...
+                    obj.VSIE_mvp_ = @(Jcb) VSIE_explicit_pFFT_gpu(Jcb, obj,...
                                                                      obj.scatterer,...
                                                                      obj.dims,...
                                                                      obj.precorrection,...
@@ -124,7 +141,7 @@ classdef mvp_vsie < src_mvp.mvp_base
                 else
 
                     % set mvp for sie
-                    obj.VSIE_mvp_ = @(Jcb) VSIE_coupled_pFFT(Jcb, obj,...
+                    obj.VSIE_mvp_ = @(Jcb) VSIE_explicit_pFFT(Jcb, obj,...
                                                                      obj.scatterer,...
                                                                      obj.dims,...
                                                                      obj.precorrection,...
@@ -132,10 +149,7 @@ classdef mvp_vsie < src_mvp.mvp_base
                 end
                 
             else
-                
-                P = obj.PS(:,1:obj.dims.N_sie);
-                S = obj.PS(:,obj.dims.N_sie+1:end);
-                
+         
                 if gpu_flag
                     P = src_utils.to_GPU(P,0);
                     S = src_utils.to_GPU(S,0);
@@ -147,9 +161,7 @@ classdef mvp_vsie < src_mvp.mvp_base
                     L_ext = @(Jin) obj.L_ext_gpu(Jin);
                     K_ext = @(Jin) obj.K_ext_gpu(Jin);
                 else
-                    Z_C2B     = obj.precorrection.Z_C2B.Nop;
-                    Z_C2B_Kop = obj.precorrection.Z_C2B.Kop;
-                    Z_C2B_T = Z_C2B.';
+                    
                     Mc_inv_Gram = obj.scatterer.prop_ext.Mc_inv * obj.scatterer.dom_ext.res.^3;
                     L_ext = @(Jin) obj.L_ext(Jin);
                     K_ext = @(Jin) obj.K_ext(Jin);
@@ -159,11 +171,10 @@ classdef mvp_vsie < src_mvp.mvp_base
                                                                  Z_C2B, Z_C2B_T, obj.Z_coil_inv,...
                                                                  P, S, freq);
                                                              
-                obj.Jcb2H_tot_ = @(Jc, Jb) Jcb2Htot(Jc, Jb, K_ext, Z_C2B_Kop, P,S);
-                                                             
-                obj.SIE_mvp_ = @(Jb, port) SIE_decoupled_pFFT(Jb, port, obj.operators_.Jc_ini,...
-                                                              obj.Z_coil_inv, L_ext, P, S, freq);                                             
-                                                             
+                obj.Jb2H_tot_ = @(Jb) Jb2Htot_pFFT(Jb, K_ext, L_ext, Z_C2B_Kop, Z_C2B_T, obj.operators_.Zc_inv_hat,...
+                                              P,S, b_K, freq); 
+                                                          
+                obj.SIE_mvp_ = @(Jb_cu, Jb_cs, Z_L, rhs_cp) SIE_decoupled_pFFT(Jb_cu, Jb_cs, X_cu, b_Icu, L_ext, S, Z_L, rhs_cp);                                                              
             end
         end
                
@@ -173,38 +184,70 @@ classdef mvp_vsie < src_mvp.mvp_base
             % function set_final_mvp_coupled_implicit_();
             
             Solver_mode = obj.task_settings_.vsie.Solver_mode;
+            
             % 
             obj.Jc2K_coupling_ = @(Jin) Jc2K_coupling(Jin,obj.scatterer.dom_vie.r, coil, obj.dims.ql, freq);
-            obj.Jc2H_coupling_ = @(Jin) Jc2H_coupling_basis(Jin, obj.operators_.U_K, obj.operators_.alpha_K,...
+            obj.Jc2H_coupling_ = @(Jin) Jc2H_coupling_basis(Jin, obj.operators_.U_K, obj.operators_.V_K,...
                                                                     obj.operators_.M_q2ql);
+                                                                
+            obj.Jb2H_coupling_ = @(Jin, Ic0, Y_LC, rhs_cp) Jb2H_coupling_basis(Jin, Ic0, obj.operators_.U_K, obj.operators_.V_K, ...
+                                                            obj.operators_.b_K, obj.operators_.b_N, Y_LC, rhs_cp, obj.operators_.M_q2ql);
+                                                        
             obj.Jb2Escat_mvp_  = @(Jin) Jb2Eb_vie_mvp(Jin, obj, freq);
             obj.Jb2Eb_mvp_     = @(Jin) Jb2Eb_mvp(Jin, obj.dims, obj.scatterer, freq);
 
-            if strcmp(Solver_mode, 'Coupled')
-                obj.VSIE_mvp_ = @(Jcb) VSIE_coupled_basis(Jcb, obj, obj.dims);
+            if strcmpi(Solver_mode, 'explicit')
+                obj.VSIE_mvp_ = @(Jcb) VSIE_explicit_basis(Jcb, obj, obj.dims);
+                obj.SIE_mvp_  = @(Jb_cu, Jb_cs, Z_L, rhs_cp) SIE_decoupled_basis(Jb_cu, Jb_cs,...
+                                                          obj.operators_.X_cu,...
+                                                          obj.operators_.b_Icu,...
+                                                          Z_L,...
+                                                          rhs_cp,...
+                                                          obj.operators_.M_q2ql);
+            elseif strcmpi(Solver_mode, 'tissue_implicit')
+                obj.VSIE_mvp_temp_ = @(Jc, inner_solver) VSIE_tissue_implicit_basis(Jc, obj, inner_solver);
+                obj.SIE_mvp_  = @(Jb_cu, Jb_cs, Z_L, rhs_cp) SIE_decoupled_basis(Jb_cu, Jb_cs,...
+                                                          obj.operators_.X_cu,...
+                                                          obj.operators_.b_Icu,...
+                                                          Z_L,...
+                                                          rhs_cp,...
+                                                          obj.operators_.M_q2ql);
             else
                 obj.VSIE_mvp_ = @(Jb) VSIE_decoupled_basis(Jb, obj);
-                obj.SIE_mvp_  = @(Jb, port) SIE_decoupled_basis(Jb, port, obj.operators_.U_N,...
-                                                                        obj.operators_.X_N,...
-                                                                        obj.operators_.Jc_ini,...
-                                                                        obj.operators_.M_q2ql);
+                obj.SIE_mvp_  = @(Jb_cu, Jb_cs, Z_L, rhs_cp) SIE_decoupled_basis(Jb_cu, Jb_cs,...
+                                                          obj.operators_.X_cu,...
+                                                          obj.operators_.b_Icu,...
+                                                          Z_L,...
+                                                          rhs_cp,...
+                                                          obj.operators_.M_q2ql);
             end
         end
         
         % ------------------------------------------------------------- %
-        function set_final_mvp_explicit_(obj, coil, freq)
+        function set_final_mvp_dense_(obj, coil, freq)
             
             Solver_mode = obj.task_settings_.vsie.Solver_mode;
             gpu_flag_coupling = obj.task_settings_.basis.GPU_flag;
-            
+                        
             obj.Jc2H_coupling_ = @(Jin) Jc2H_coupling_dense(Jin, obj.operators_.Zbc_Kop);
             obj.Jb2Escat_mvp_  = @(Jin) Jb2Eb_vie_mvp(Jin, obj, freq);
             obj.Jb2Eb_mvp_     = @(Jin) Jb2Eb_mvp(Jin, obj.dims, obj.scatterer, freq);
+            obj.Jb2H_coupling_ = @(Jin, Ic0, Y_LC, rhs_cp) Jb2H_coupling_basis(Jin, Ic0, obj.operators_.Zbc_Kop, obj.operators_.V_K, ...
+                                                            obj.operators_.b_K, obj.operators_.b_N, Y_LC, rhs_cp);
+                                                        
+            if strcmpi(Solver_mode, 'explicit')
 
-            if strcmp(Solver_mode, 'Coupled')
-
-                obj.VSIE_mvp_ = @(Jcb) VSIE_coupled_explicit(Jcb, obj, obj.Z_coil,...
+                obj.VSIE_mvp_ = @(Jcb) VSIE_explicit_dense(Jcb, obj, obj.Z_coil,...
                                                                      obj.operators_.Zbc_Nop, obj.operators_.Zbc_Nop.');
+                                                                 
+                obj.SIE_mvp_ = @(Jb_cu, Jb_cs, Z_L, rhs_cp) SIE_decoupled_pFFT(Jb_cu, Jb_cs, X_cu, b_Icu, L_ext, S, Z_L, rhs_cp);                                                              
+                                                 
+            elseif strcmpi(Solver_mode, 'tissue_implicit')
+                obj.VSIE_mvp_temp_ = @(Jc, inner_solver) VSIE_tissue_implicit_dense(Jc, obj, inner_solver);
+                                                                                 
+                %  set up decoupled sie mvp                                                
+                obj.SIE_mvp_ = @(Jb_cu, Jb_cs, Z_L, rhs_cp) SIE_decoupled_explicit(Jb_cu, Jb_cs, obj.operators_.b_Icu,...
+                                                                      obj.operators_.X_cu, Z_L, rhs_cp);                                                   
             else 
                 % set up decoupled vsie mvp (solve for tissue currents)
 %                 obj.VSIE_mvp_ = @(Jcb) src_mvp.VSIE_decoupled_explicit(Jcb, obj, obj.Z_coil,...
@@ -217,10 +260,8 @@ classdef mvp_vsie < src_mvp.mvp_base
                                                                        obj.operators_.Zbc_Nop);
                                                                    
                 % set up decoupled sie mvp                                                
-                obj.SIE_mvp_ = @(Jb, port) SIE_decoupled_explicit(Jb, obj.operators_.Jc_ini,...
-                                                                          obj.Z_coil,...
-                                                                          obj.operators_.Zbc_Nop,...
-                                                                          port);                                               
+                obj.SIE_mvp_ = @(Jb_cu, Jb_cs, Z_L, rhs_cp) SIE_decoupled_explicit(Jb_cu, Jb_cs, obj.operators_.b_Icu,...
+                                                                      obj.operators_.X_cu, Z_L, rhs_cp);                                               
             end                                            
 
         end
@@ -241,7 +282,7 @@ classdef mvp_vsie < src_mvp.mvp_base
                 % coupled implicit
                 case 'Dense'
                     
-                    obj.set_core_mvps_explicit_(freq);
+                    obj.set_core_mvps_dense_(freq);
                     
                 % coupled explicit
                 case 'pFFT'
@@ -352,10 +393,13 @@ classdef mvp_vsie < src_mvp.mvp_base
         
         % ------------------------------------------------------------- %
         
-        function set_core_mvps_explicit_(obj, freq)
+        function set_core_mvps_dense_(obj, freq)
             
             % get gpu flag
             gpu_flag = obj.task_settings_.general.GPU_flag;
+            
+            Volume = obj.scatterer.dom_vie.res.^3;
+            S_ql = obj.scatterer.index_vie.index_ql(obj.dims.ql, obj.dims.Nvox_vie);
             
             % setup core mvps for body domain
             [N_mvp, K_mvp, G_mvp] = obj.set_core_mvps_(obj.operators_.N_vie_,...
@@ -363,8 +407,10 @@ classdef mvp_vsie < src_mvp.mvp_base
                                                        obj.dims.vie, obj.dims.op_vie);
 
             S_ql = obj.scatterer.index_vie.index_ql(obj.dims.ql, obj.dims.Nvox_vie);
-                                     
             
+            obj.implicit_c2b_coupling_ = @(Jin) coupling_c2b_basis_mvp(Jin, obj.operators_.Zbc_Nop, speye(obj.dims.N_sie), Volume, obj.operators_.M_q2ql);
+            obj.implicit_b2c_coupling_ = @(Jin) coupling_b2c_basis_mvp(Jin, obj.operators_.Zbc_Nop, speye(obj.dims.N_sie), Volume, obj.operators_.M_q2ql);
+                                     
             % store mvp hadles in object properties
             obj.N_mvp_vie_  = N_mvp;
             obj.K_mvp_vie_  = K_mvp;
@@ -373,12 +419,14 @@ classdef mvp_vsie < src_mvp.mvp_base
             % setup "VIE" mvp
             if gpu_flag
                 
+                Jo_tensor =  gpuArray(zeros(obj.dims.vie));
+                
                 [N_mvp_vie_gpu, K_mvp_vie_gpu , ~] = obj.set_core_mvps_(obj.operators_.N_vie_gpu,...
                                                                         obj.operators_.K_vie_gpu,...
                                                                         obj.dims.vie, obj.dims.op_vie);
                                                                     
 
-                obj.VIE_mvp_ = @(Jin) VIE_mvp_gpu(Jin, obj, obj.scatterer, obj.dims, S_ql, freq);
+                obj.VIE_mvp_ = @(Jin) VIE_mvp_gpu(Jin, Jo_tensor, obj, obj.scatterer, obj.dims, S_ql, freq);
                 
                 obj.N_mvp_vie_gpu = N_mvp_vie_gpu;
                 obj.K_mvp_vie_gpu = K_mvp_vie_gpu; 
@@ -401,21 +449,20 @@ classdef mvp_vsie < src_mvp.mvp_base
 
         
             % setup coupling mvps
-            obj.implicit_c2b_coupling_ = @(Jin) coupling_c2b_basis_mvp(Jin, obj.operators_.U_N, obj.operators_.alpha_N, Volume, obj.operators_.M_q2ql);
-            obj.implicit_b2c_coupling_ = @(Jin) coupling_b2c_basis_mvp(Jin, obj.operators_.U_N, obj.operators_.alpha_N, Volume, obj.operators_.M_q2ql);
+            obj.implicit_c2b_coupling_ = @(Jin) coupling_c2b_basis_mvp(Jin, obj.operators_.U_N, obj.operators_.V_N, Volume, obj.operators_.M_q2ql);
+            obj.implicit_b2c_coupling_ = @(Jin) coupling_b2c_basis_mvp(Jin, obj.operators_.U_N, obj.operators_.V_N, Volume, obj.operators_.M_q2ql);
 %             obj.implicit_UWU_coupling_ = @(Jin) coupling_UWU_basis_mvp(Jin, obj.operators_.U_N, obj.operators_.W_N, obj.operators_.M_q2ql);  
-            obj.implicit_UWU_coupling_ = @(Jin) coupling_UWU_basis_mvp(Jin, obj.operators_.UU_N, obj.operators_.V_N, obj.operators_.M_q2ql);  
+            obj.implicit_UWU_coupling_ = @(Jin) coupling_UWU_basis_mvp(Jin, obj.operators_.U_N, obj.operators_.V_N, obj.operators_.M_q2ql);  
 
             [N_mvp_vie, K_mvp_vie, G_mvp_vie] = obj.set_core_mvps_(obj.operators_.N_vie_,...
                                                                    obj.operators_.K_vie_,...
                                                                    obj.dims.vie, obj.dims.op_vie);
-                                                               
-                                                      
-                                                               
+                                                                                                                              
             % save matrix-vector products
             obj.N_mvp_vie_  = N_mvp_vie;
             obj.K_mvp_vie_  = K_mvp_vie;
             obj.G_mvp_vie_  = G_mvp_vie;
+                        
             
             obj.VIE_mvp_ = @(Jin) VIE_mvp(Jin, obj, obj.scatterer, obj.dims, S_ql, freq);
 
@@ -423,11 +470,15 @@ classdef mvp_vsie < src_mvp.mvp_base
             % setup "VIE" mvp
             if gpu_flag
                 
+                Jo_tensor =  gpuArray(zeros(obj.dims.vie)); 
+
+                
                 [N_mvp_vie_gpu, K_mvp_vie_gpu , ~] = obj.set_core_mvps_(obj.operators_.N_vie_gpu,...
                                                                         obj.operators_.K_vie_gpu,...
                                                                         obj.dims.vie, obj.dims.op_vie);
                                                                     
-                obj.VIE_mvp_ = @(Jin) VIE_mvp_gpu(Jin, obj, obj.scatterer, obj.dims, S_ql, freq);                
+                
+                obj.VIE_mvp_ = @(Jin) VIE_mvp_gpu(Jin, Jo_tensor, obj, obj.scatterer, obj.dims, S_ql, freq);                
                 
                 obj.N_mvp_vie_gpu = N_mvp_vie_gpu;
                 obj.K_mvp_vie_gpu = K_mvp_vie_gpu; 

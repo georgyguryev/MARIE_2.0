@@ -51,7 +51,7 @@ classdef Cross_approx < Sampling_approx_Base
             fV_op = @(rows) obj.fV(rows, op_type);
             fA_hat_op = @(rows, cols) obj.fA_hat(rows, cols, op_type);
             
-            profile on;                                                      
+%             profile on;                                                      
 
             idxS = obj.scatterer.index_vie.S_1d;
             
@@ -59,8 +59,8 @@ classdef Cross_approx < Sampling_approx_Base
             [U,V] = cross_cheb_2d(fU_op, fV_op, fA_hat_op, obj.fTerm,...
                                     idxS, N, obj.dims, Max_iter, tol);
                                 
-            profile off;
-            profile viewer;
+%             profile off;
+%             profile viewer;
         end      
         
     end

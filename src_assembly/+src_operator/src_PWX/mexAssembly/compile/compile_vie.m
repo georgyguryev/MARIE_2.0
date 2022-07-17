@@ -33,14 +33,6 @@ function compile_vie(verbose,debug)
 	BINDIR=fullfile(SRCDIR,'bin');
 	LIBDIR=fullfile(SRCDIR,'lib');
 	INCDIR=fullfile(SRCDIR,'include');
-    
-    if isunix
-        % override matlab default LD_LIBRARY_PATH to system default
-        % otherwise loads a local version of libstdc++.so
-        ld_paths = getenv('LD_LIBRARY_PATH');
-        setenv('LD_LIBRARY_PATH', ['/lib/' ';' '/usr/lib/']);
-    end
-    
 	if ~exist(fullfile(LIBDIR,'libVc.a'),'file') || isempty(dir(fullfile(INCDIR,'Vc')))
 		system(fullfile(INCDIR,'external','build.sh'));
 	end
@@ -57,10 +49,4 @@ function compile_vie(verbose,debug)
 	end
  	clear vie_assembly
  	mex(mexArgs{:},fullfile(SRCDIR,'src','vie_assembly.cpp'),['-L',LIBDIR],'-lVc')
-    
-    if isunix
-        % set LD_LIBRARY_PATH back to matlab default
-        setenv('LD_LIBRARY_PATH', ld_paths);
-    end
-    
 end

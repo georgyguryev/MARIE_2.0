@@ -61,17 +61,19 @@ classdef Precond_LU < handle
             M_vie = speye(length(idx_1d) * obj.dims.l);
             
             % 
-            M_vie = spdiags(sqrt((1 / emu.ce) .* mvp.G_prec(Mcr_inv(idx_1d))), 0 , M_vie);
-            
-            % store results
-            obj.P_vie = 1:obj.dims.q * size(M_vie);
-            obj.L_vie = sparse(blkdiag(M_vie, M_vie, M_vie));
-            obj.U_vie = obj.L_vie;
+            M_vie_vec = sqrt((1 / emu.ce) .* mvp.G_prec(Mcr_inv(idx_1d)));
+%             M_vie     = spdiags(sqrt((1 / emu.ce) .* mvp.G_prec(Mcr_inv(idx_1d))), 0 , M_vie);
+%             M_vie = spdiags(1 ./ M_vie_vec, 0, M_vie); 
             
 %             % store results
-%             obj.P_vie = []; 
-%             obj.L_vie = full(M_vie(1,1)); 
-%             obj.U_vie = full(M_vie(1,1)); 
+%             obj.P_vie = 1:obj.dims.q * size(M_vie);
+%             obj.L_vie = sparse(blkdiag(M_vie, M_vie, M_vie));
+%             obj.U_vie = obj.L_vie;
+            
+            % store results
+            obj.P_vie = 1:size(M_vie_vec,1);
+            obj.L_vie = 1 ./ M_vie_vec;
+            obj.U_vie = obj.L_vie;
             
             
         end
@@ -92,6 +94,21 @@ classdef Precond_LU < handle
             obj.P_vsie = [obj.P_sie, max(obj.P_sie) + (1:size(Mb_prec))];
             obj.L_vsie = sparse(blkdiag(obj.L_sie, Mb_prec));
             obj.U_vsie = sparse(blkdiag(obj.U_sie, Mb_prec));
+            
+        end
+        
+        
+            % --------------------------------------------------------------- %
+        
+        function assemble_precond_vsie_tissue_implicit(obj, Zc_inv)
+            
+            % get scaling factor from Uc
+            N  = size(Zc_inv,1);
+            
+            % symmetrize Lc and Uc for better convergence of GMRES
+            obj.L_sie = Zc_inv;
+            obj.U_sie = speye(N);
+            obj.P_sie = [];
             
         end
         

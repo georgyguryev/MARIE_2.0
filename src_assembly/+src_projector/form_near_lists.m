@@ -34,11 +34,9 @@ for i_sie = 1:N_sie
     
 end
  
-
-
 % assign an expansion cell for given RWG function
 % RWG_to_PWX_cells(:,i_sie) = src_projector.assign_expansion_cell(C2Exp_centers, dims);
-RWG_to_PWX_cells = src_projector.assign_expansion_cell(C2Exp_centers, dims);
+RWG_to_PWX_cells = src_projector.assign_expansion_cell(C2Exp_centers, dims, 'ext');
 
 % form a simple near interaction list with indexing within extended domain
 [C2Vox_near_lists.ext, C2Vox_near_lists.near] = src_projector.form_expansion_near_list(C2Exp_centers, dims);

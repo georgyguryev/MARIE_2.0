@@ -118,10 +118,6 @@ end
 if(nargin < 12 || isempty(x0))
     x0 = zeros(size(b));
 end
-if(nargin < 13)
-    dims = [];
-end
-
 
 
 % -------------------------------------------------------------------------
@@ -166,12 +162,18 @@ end
 % Calculate initial preconditioned residual.
 % r = b - A*x0;
 r = b - src_numeric.iterapp('mtimes',afun,atype,afcnstr,x0);
+r_true = r;
 % if there is Left preconditoning, the residual is L2\(L1\(B-A*X))
 bp = b;
 if existL1
     if strcmp(L1type,'matrix')
-         r  = L1 \ r;%r(pL_L);
-        bp  = L1 \ bp;%bp(pL_L);
+%          r  = L1 \ r;%r(pL_L);
+%         bp  = L1 \ bp;%bp(pL_L);
+
+%         r = L1 .* r;
+        r = src_numeric.apply_preconditioner(L1, r, pL_L);
+        bp = src_numeric.apply_preconditioner(L1, bp, pL_L);
+%         bp = L1 .* bp;
     else
         r = src_numeric.iterapp('mtimes',L1fun,L1type,L1fcnstr,r);
         bp = src_numeric.iterapp('mtimes',L1fun,L1type,L1fcnstr,bp);
@@ -179,8 +181,13 @@ if existL1
 end
 if existL2
     if strcmp(L2type,'matrix')
-        r = L2\r;
-        bp = L2\bp;
+%         r = L2\r;
+%         bp = L2\bp;
+%         r = L2 .* r;
+%         bp = L2 .* bp;
+        
+        r = src_numeric.apply_preconditioner(L2, r, pL_L);
+        bp = src_numeric.apply_preconditioner(L2, bp, pL_L);
     else
         r = src_numeric.iterapp('mtimes',L2fun,L2type,L2fcnstr,r);
         bp = src_numeric.iterapp('mtimes',L1fun,L1type,L2fcnstr,bp);
@@ -199,6 +206,9 @@ clear bp;
 resvec = zeros(restart*maxit,1);
 it = 1;
 
+resvec_true = zeros(restart * maxit, 1);
+
+
 % if ~isempty(dims)
 %     res_sie = norm(r(1:dims.N_sie)) / bnorm_sie;
 %     res_vie = norm(r(dims.N_sie+1:end)) / bnorm_vie;
@@ -209,7 +219,7 @@ it = 1;
 
 
 resvec(it) = norm(r)/bnorm;
-
+resvec_true(it) = norm(b - src_numeric.iterapp('mtimes',afun,atype,afcnstr,x0)) / norm(b);
 
 outit = 0;
 C = [];
@@ -219,9 +229,20 @@ C = [];
 % first call to an initial gmres to perform restart iterations
 
 % Call the gmres to perform restart iterations
-[V,H,~,p,resvec_inner] = src_numeric.my_pgmresDR_iter(A,r,restart,L1,pL_L,L2,R1,R2,...
-                                                      C, tol * bnorm);
-
+[V,H,~,p,resvec_inner, x_sol] = src_numeric.my_pgmresDR_iter(A,r,restart,L1,pL_L,L2,R1,R2,...
+                                                      C, tol * bnorm);   
+                                                  
+% x_true = R1 \ x_sol;
+% x_true = x_sol; 
+% x_true = R1 .* x_sol;
+% 
+% for k = 1:p
+% %     y = H(1:k+1,1:k)\(V(:,1:k+1)'*r);
+% %     x = V(:,1:k)*y;
+%     x = x0 + x_true(:,k);
+%     resvec_true(it+k) = norm(b - src_numeric.iterapp('mtimes',afun,atype,afcnstr, x)) / norm(b);
+% end
+                                                  
 % store vector with residues
 resvec(it+1:it+p) = resvec_inner/bnorm;
 it = it + p;
@@ -317,7 +338,8 @@ if(existR2) % second right preconditioning
 end
 if(existR1) % first right preconditioning
     if strcmp(R1type,'matrix')
-        x = R1 \ x;
+%         x = R1 \ x;
+        x = src_numeric.apply_preconditioner(R1, x, []);
     else
         x = src_numeric.iterapp('mtimes',R1fun,R1type,R1fcnstr,x);
     end

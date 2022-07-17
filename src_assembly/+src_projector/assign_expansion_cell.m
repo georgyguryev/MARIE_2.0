@@ -1,11 +1,19 @@
-function [I_exp_vox] = assign_expansion_cell(r_exp_ctr, dims)
+function [I_exp_vox] = assign_expansion_cell(r_exp_ctr, dims, indexing_domain)
 
 I_exp_vox = zeros(dims.N_exp_1D.^3, dims.N_sie);
 
 N_exp_1D = dims.N_exp_1D;
-L = dims.L_ext;
-M = dims.M_ext;
-N = dims.N_ext;
+
+switch indexing_domain
+    case 'ext'
+        L = dims.L_ext;
+        M = dims.M_ext;
+        N = dims.N_ext;
+    case 'near'
+        L = dims.N_near_1D;
+        M = L;
+        N = L;
+end
 
 % we assume that Ncell is n_1d^3 , where n_1d is number of cubes in 1 dim
 idx_range = -(N_exp_1D - 1) / 2:1:(N_exp_1D-1) / 2;

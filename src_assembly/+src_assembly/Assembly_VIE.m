@@ -153,7 +153,7 @@ methods (Access = protected)
         coupling_type = obj.task_settings_.vsie.Coupling_Mode;
         
         % if implicit coupling is selected, compute precorrection mats.
-        if strcmp(coupling_type, 'pFFT')
+        if strcmpi(coupling_type, 'pfft')
             
             % instantiate precorrection matrices
             obj.precorrection = src_precorrection.Precorrection(obj.coil, obj.scatterer,...
@@ -440,7 +440,7 @@ methods (Access = protected)
         obj.dims.N_exp_3D  = N_exp.^3;
         obj.dims.N_near_3D = N_near.^3; 
         
-%         obj.projector.near_boundary_width = obj.task_settings_.vsie.Near_boundary_width;
+        obj.projector.near_boundary_width = obj.task_settings_.vsie.Near_boundary_width;
         
         %
         obj.dims.near = [obj.dims.N_near_1D, obj.dims.N_near_1D, obj.dims.N_near_1D, obj.dims.ql];
@@ -494,8 +494,11 @@ methods (Access = protected)
         %
         gpu_flag = obj.task_settings_.basis.GPU_flag;
         
+        tic;
+        
         [Zbc_Nop, Zbc_Kop] = src_coupling.assemble_coupling_matrices(obj.task_settings_, obj.scatterer, obj.coil, ...
             obj.dims, freq, [], [], 0);
+        toc;
         if gpu_flag
             
             obj.operators.Zbc_Nop = gpuArray(Zbc_Nop);

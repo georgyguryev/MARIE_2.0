@@ -1,4 +1,4 @@
-function [Vout] = VIE_mvp_gpu(Jb, mvp, scatterer, dims, S_ql, freq)
+function [Vout] = VIE_mvp_gpu(Jb, Jin, mvp, scatterer, dims, S_ql, freq)
 % function [Vout] = VIE_mvp_gpu(Jb, mvp, scatterer, dims, S_ql, freq)
 % implements the matrix-vector product for JVIE-I formulation
 % (JVIE-2 when preconditioned) 
@@ -16,7 +16,7 @@ function [Vout] = VIE_mvp_gpu(Jb, mvp, scatterer, dims, S_ql, freq)
 % Author: Georgy Guryev, Cambridge, MA, 2019    
 
 % transfer input vector to GPU
-Jb = gpuArray(Jb);
+% Jb = gpuArray(Jb);
 
 % get electromagnetic properties
 emu = src_utils.EM_utils(freq);
@@ -26,8 +26,15 @@ Mcr = scatterer.prop_vie.Mcr;
 Mrc = scatterer.prop_vie.Mrc;
 
 % preallocate tensor of body currents
-Eout = gpuArray(zeros(dims.vie));
-Jin  = gpuArray(zeros(dims.vie));
+% Eout = gpuArray(zeros(dims.vie));
+% Jin  = gpuArray(zeros(dims.vie));
+
+% Eout = zeros(dims.vie);
+% Jin = zeros(dims.vie);
+
+% Eout = gpuArray(Eout);
+% Jin = gpuArray(Jin);
+
 
 % copy scatterer polarization curents to tensor format
 Jin(S_ql) = Jb;
@@ -48,13 +55,14 @@ G_J = reshape(G_J, dims.vie);
 for i = 1:dims.ql
     
     % compute the JVIE II formulation
-    Eout(:,:,:,i) =  1 / emu.ce .* Mrc .* (G_J(:,:,:,i) - Mcr .* E_b(:,:,:,i));
+    E_b(:,:,:,i) =  1 / emu.ce .* Mrc .* (G_J(:,:,:,i) - Mcr .* E_b(:,:,:,i));
 
 end
 
 % select scatterer unknowns
-Vout = gather(Eout(S_ql));
+% Vout = gather(E_b(S_ql));
+Vout = E_b(S_ql);
 
 %% deallocate memory 
 
-clear Eout Jin Jb E_b G_J Mcr Mrc;
+% clear Eout Jin Jb E_b G_J Mcr Mrc;

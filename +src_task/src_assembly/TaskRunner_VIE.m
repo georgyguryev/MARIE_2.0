@@ -314,7 +314,7 @@ classdef TaskRunner_VIE < TaskRunner_Base
             % scale linear components (Gramian)
             if obj.dims.ql == 12
                 G = repmat([1; 1/12; 1/12; 1/12;], obj.dims.q,1);
-                for i = dims.ql
+                for i = obj.dims.ql
                     SAR.loc(:,:,:,i) = G(i) .* SAR.loc(:,:,:,i);
                 end
             end

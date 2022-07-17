@@ -84,8 +84,8 @@ classdef Precorrection < handle
                 end
                 
                 % form the resulting precorrection
-                obj.Z_tot = [obj.Z_C2C, obj.Z_B2C.';
-                    -obj.Z_B2C, sparse(N_b,N_b)];
+                obj.Z_tot = [obj.Z_C2C, obj.Z_C2B.Nop.';
+                    -obj.Z_C2B.Nop, sparse(N_b,N_b)];
             end
                         
 

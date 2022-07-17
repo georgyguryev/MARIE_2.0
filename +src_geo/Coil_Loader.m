@@ -24,6 +24,9 @@ classdef Coil_Loader < handle
         % file with coil mesh
         coil_msh_file_   = '';
         
+        % file with shield mesh (if coil mesh does not include the shield)
+        shield_msh_file_ = '';
+        
         % coil path
         coil_path_       = '';
         
@@ -43,6 +46,7 @@ classdef Coil_Loader < handle
             % setting properties
             obj.port_specs_file_ = sie_settings.CoilPortsFile;
             obj.coil_msh_file_   = sie_settings.CoilMeshFile;
+            obj.shield_msh_file_ = sie_settings.ShieldMeshFile;
             obj.coil_path_       = sie_settings.Coil_Path;
             
             % validate files' extensions
@@ -86,42 +90,66 @@ classdef Coil_Loader < handle
         
         function COIL_struct = load_coil_mesh_(obj, ports)
             % private method reads mesh from .msh file
-                        
-            % parse .msh file; extract elementary entities 
-            [node,~,e,elem,~] = Mesh_Parse(fullfile(obj.coil_path_,...
-                                           obj.coil_msh_file_));
-                         
-
-            % extract higher-level geometric entities
-            [edge,etod,index,ports,index_elem] = Mesh_PreProc(e,elem,ports);
             
+            mat_mesh_file = strcat(obj.coil_msh_file_(1:end-3), 'mat');
             
-            % validate coil mesh orientation         
-            obj.validate_coil_mesh_(index_elem, etod);
-            
-            % "validate" and "fix" orientation of triangles (XOR with validate_coil_mesh_()!!!)
-%             [elem_new] = obj.validate_coil_mesh_old_(node, elem);
-            
-            % 
-            [Ct,Ln,Pn] = Mesh_CLP(node,elem);
-            
-            
-            % save COIL data to structure
-            COIL_struct = struct('index',  index,...
-                                 'etod', etod, ...
-                                 'node', node, ...
-                                 'edge', edge, ...
-                                 'elem', elem, ...
-                                 'index_elem', index_elem, ...
-                                 'Ct', Ct, ...
-                                 'Ln', Ln, ...
-                                 'Pn', Pn, ...
-                                 'port', ports);
-                             
-            % form lists for vertex locations
-            COIL_struct = obj.get_vertex_locations_(COIL_struct);
+            if 2 == exist(mat_mesh_file, 'file')
+                load(mat_mesh_file, 'COIL');
+                COIL_struct = COIL;
+                clear COIL;
+            else
+                
+                % parse .msh file; extract elementary entities
+                [node,~,e,elem,~] = Mesh_Parse(fullfile(obj.coil_path_,...
+                    obj.coil_msh_file_));
+                
+                if ~strcmp(obj.shield_msh_file_, '[]')
+                    % parse .msh file; extract elementary entities
+                    [node_sh,~,~,elem_sh,~] = Mesh_Parse(fullfile(obj.coil_path_,...
+                                                        obj.shield_msh_file_));
+                    
+                    node_offset = size(node,2);
+                    shield_trg  = size(elem_sh,2);
+                    
+                    elem_sh = elem_sh + node_offset * [ones(3, shield_trg); zeros(1,shield_trg)];
+                    
+                    node = [node, node_sh];
+                    elem = [elem, elem_sh];
+                end
+                
+                
+                % extract higher-level geometric entities
+                [edge,etod,index,ports,index_elem] = Mesh_PreProc(e,elem,ports);
+                
+                
+                % validate coil mesh orientation
+                obj.validate_coil_mesh_(index_elem, etod);
+                
+                % "validate" and "fix" orientation of triangles (XOR with validate_coil_mesh_()!!!)
+                %             [elem_new] = obj.validate_coil_mesh_old_(node, elem);
+                
+                %
+                [Ct,Ln,Pn] = Mesh_CLP(node,elem);
+                
+                
+                % save COIL data to structure
+                COIL_struct = struct('index',  index,...
+                    'etod', etod, ...
+                    'node', node, ...
+                    'edge', edge, ...
+                    'elem', elem, ...
+                    'index_elem', index_elem, ...
+                    'Ct', Ct, ...
+                    'Ln', Ln, ...
+                    'Pn', Pn, ...
+                    'port', ports);
+                
+                % form lists for vertex locations
+                COIL_struct = obj.get_vertex_locations_(COIL_struct);
+            end
         end
-        
+
+            
         % ------------------------------------------------------------- %
         
         function [] = validate_file_extensions_(obj)

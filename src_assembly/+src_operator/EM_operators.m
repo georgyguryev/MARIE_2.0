@@ -36,14 +36,17 @@ classdef EM_operators < handle
         U_N
         U_K
         
-        UU_N
         V_N
-        X_N
-        X_K
-        W_N
-        W_K
-        alpha_N
-        alpha_K
+        V_K
+        X_cs
+        X_cu
+
+       
+        b_N
+        b_K
+        b_Ics
+        b_Icu
+        
         alpha_Zc_inv
         M_q2ql
         domain
@@ -52,6 +55,8 @@ classdef EM_operators < handle
         Zbc
         Zbc_Nop
         Zbc_Kop
+        
+        Zc_inv_hat
         
         dims;
     end

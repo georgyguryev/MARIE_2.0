@@ -11,8 +11,8 @@ function Vout = coupling_b2c_basis_mvp(Jin, U, alpha, Gram, S_q2ql)
 %        - Vout - electric fields, incident on the coil 
 % Author: Georgy Guryev, Cambridge, MA, 2019    
 
-if nargin == 5  && size(U,1) ~= size(S_q2ql,1)
-    Vout = Gram * (alpha.' * (U.' * ( S_q2ql.' * Jin)));
+if nargin == 5  && size(U,1) ~= size(S_q2ql,1) && ~isempty(S_q2ql)
+    Vout = alpha.' * (U.' * ( S_q2ql.' * Jin));
 else
-    Vout = Gram * (alpha.' * (U.' * Jin));
+    Vout = alpha.' * (U.' * Jin);
 end

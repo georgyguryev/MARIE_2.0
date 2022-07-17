@@ -7,5 +7,5 @@ else
     Vout = U * (W  * Jin);
 end
 
-Vout = gather(Vout);
+% Vout = gather(Vout);
 
